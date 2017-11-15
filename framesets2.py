@@ -104,6 +104,7 @@ History:
     changed: August 13, 2001 (converted to Python)
     changed: December 19, 2015 (used Python sets instead of code converted 
         from Tcl)
+    changed: September 16, 2017 (minor bug fixes in Python version)
 
 Copyright (c) 2015 Cris A. Fugate
 
@@ -130,13 +131,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 __author__ = "Cris A. Fugate"
 __version__ = "2.0"
-__copyright__ "Copyright (c) 2015, Cris A. Fugate"
+__copyright__ = "Copyright (c) 2015, Cris A. Fugate"
 __license__ = "MIT"
 
 import os
 from sets import Set
 
-
+# tested
 def ffind(sname):
     """ Find all frames having a given value facet
 
@@ -153,7 +154,7 @@ def ffind(sname):
             listx.append(i)
     return listx
 
-
+# tested
 def ffindeq(sname, args):
     """ Find all frames having a given value for a given value facet
 
@@ -172,7 +173,7 @@ def ffindeq(sname, args):
                 listx.append(i)
     return listx
 
-
+# tested
 def ffindne(sname, args):
     """ Find all frames not having a given value for a given value facet
 
@@ -193,9 +194,9 @@ def ffindne(sname, args):
 
 
 # initialize fframes
-fframes = Set()
+fframes = set()
 
-
+# tested
 def fexistf(fname):
     """ Determine if a frame exists.
 
@@ -207,7 +208,7 @@ def fexistf(fname):
 
     return fname in fframes
 
-
+# tested
 def fcreatef(fname):
     """ Create a frame and place it in fframes.
 
@@ -225,7 +226,7 @@ def fcreatef(fname):
     else:
         return False
 
-
+# tested
 def fremovef(fname):
     """ Remove a frame from fframes and delete it.
 
@@ -243,14 +244,14 @@ def fremovef(fname):
     else:
         return False
 
-
+# tested
 def flistf():
     """ Return list of frames
 
     returns list of frames in fframes
     """
 
-    return fframes
+    return list(fframes)
 
 
 def fcopy(fname1, fname2):
@@ -266,7 +267,7 @@ def fcopy(fname1, fname2):
 
     if (fexistf(fname1)):
         fremovef(fname2)
-        fframes.add(fname2)
+        fframes.append(fname2)
         globals()[fname2] = globals()[fname1].copy()
         return True
     else:
@@ -329,13 +330,11 @@ def floadf(fname):
     returns True if successful, False otherwise
     """
 
-    if (os.exists(fname) and not fexistf(fname)):
-        fframes[fname] = {}
+    if (os.path.exists(fname) and not fexistf(fname)):
+        fframes.add(fname)  
         fh = open(fname, "r")
-        for fhbuf in fh:
-            aname = fhbuf.split()[0]
-            avalue = fhbuf.split()[1:]
-            globals()[fname][aname] = avalue
+        buf = fh.read()
+        globals()[fname] = eval(buf)
         fh.close()
         return True
     else:
@@ -354,9 +353,7 @@ def fstoref(fname):
 
     if (fexistf(fname)):
         fh = open(fname, "w")
-        for i in globals()[fname].keys():
-            avalue = globals()[fname][i]
-            fh.writeline(i + " " + avalue)
+        fh.write(str(globals()[fname]))
         fh.close()
         return True
     else:
@@ -428,7 +425,7 @@ def fexists(fname, sname):
     else:
         return False
 
-
+# tested
 def fcreates(fname, sname):
     """ Create a slot
 
@@ -484,7 +481,7 @@ def flists(fname):
     """
 
     if (fexistf(fname)):
-        x = globals()[fframes][fname + ',slots']
+        x = list(globals()[fname][fname + ',slots'])
         return x
     else:
         return Set()
@@ -552,13 +549,13 @@ def flistt(fname, sname):
     sname - name of a slot
 
     calls fexists
-    returns a set of facet types or an empty set
+    returns a list of facet types or an empty list
     """
 
     if fexists(fname, sname):
-        return globals()[fname][sname + ',facets']
+        return list(globals()[fname][sname + ',facets'])
     else:
-        return Set()
+        return []
 
 
 def fexistrx(fname, sname):
@@ -752,7 +749,7 @@ def fexistm(fname, sname):
         if 'method' in globals()[fname][sname + ',facets']:
             if 'ifexistm' in globals()[fname][sname + ',facets']:
                 exec globals()[fname][sname + ',ifexistm']
-            found = 1
+            found = True
     return found
 
 
@@ -783,7 +780,7 @@ def fcreatem(fname, sname):
                 globals()[fname][sname + ',facets'].add('method')
                 if 'ifcreatem' in globals()[fname][sname + ',facets']:
                     exec globals()[fname][sname + ',ifcreatem']
-                created = 1
+                created = True
     return created
 
 
@@ -811,7 +808,7 @@ def fremovem(fname, sname):
                     exec globals()[fname][sname + ',ifremovem']
                 del globals()[fname][sname + ',method']
                 globals()[fname][sname + ',facets'].remove('method')
-                removed = 1
+                removed = True
     return removed
 
 
@@ -838,7 +835,7 @@ def fexecm(fname, sname):
                 if 'ifexecm' in globals()[fname][sname + ',facets']:
                     exec globals()[fname][sname + ',ifexecm']
                 exec globals()[fname][sname + ',method']
-                executed = 1
+                executed = True
     return executed
 
 
@@ -948,7 +945,7 @@ def fcreatev(fname, sname):
                 globals()[fname][sname + ',facets'].add('value')
                 if 'ifcreatev' in globals()[fname][sname + ',facets']:
                     exec globals()[fname][sname + ',ifcreatev']
-                created = 1
+                created = True
     return created
 
 
@@ -1006,13 +1003,13 @@ def fgetv(fname, sname):
     return pname
 
 
-def fputv(fname, sname, *args):
+def fputv(fname, sname, value):
     """ Put a value in a value facet
 
     Parameters:
     fname - name of a frame
     sname - name of a slot
-    args - data to put in value facet
+    value - data to put in value facet
 
     calls fexists, fputv
     returns True if data put in value facet, False otherwise
@@ -1024,12 +1021,12 @@ def fputv(fname, sname, *args):
             fname2 = globals()[fname][sname + ',ref']
             if 'ifref' in globals()[fname][sname + ',facets']:
                 exec globals()[fname][sname + ',ifref']
-            put = fputv(fname2, sname, args)
+            put = fputv(fname2, sname, value)
         else:
             if 'value' in globals()[fname][sname + ',facets']:
                 if 'ifputv' in globals()[fname][sname + ',facets']:
                     exec globals()[fname][sname + ',ifputv']
-                globals()[fname][sname + ',value'] = args
+                globals()[fname][sname + ',value'] = value
                 put = True
     return put
 
@@ -1182,7 +1179,7 @@ def fremovefs(name):
     returns True if frameset was removed, False otherwise
     """
 
-    return fremovef(name):
+    return fremovef(name)
 
 
 def fslistf(name):
@@ -1195,8 +1192,8 @@ def fslistf(name):
     returns a list of frames or an empty list
     """
 
-    if 'set' in globals()[name]
-        return globals()[name][name + ',set']
+    if 'set' in globals()[name]:
+        return list(globals()[name][name + ',set'])
     else:
         return []
 
