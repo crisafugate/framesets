@@ -1,1240 +1,1283 @@
-package framesets
+package framesets2
 
 import (
-    "fmt"
-    "strings"
-    "sort"
-    "bufio"
-    "os"
+	"fmt"
+	"bufio"
+	"os"
+	"sort"
+	"strings"
 )
 
 type Frame map[string][]string
+
 var fframes map[string]Frame
 var fmethods map[string]func(string)
 
 // initialize fframes and fmethods
 func init() {
-    fframes = make(map[string]Frame)
-    fmethods = make(map[string]func(string))
+	fframes = make(map[string]Frame)
+	fmethods = make(map[string]func(string))
 }
 
 /* value wrappers
  * For simplicity making Frame a map of string arrays.
  * Just need simple wrappers to simulate single strings.
-*/
-func getval(vector []string) string {
-    return vector[0]
-}
-func putval(vector []string, value string) {
-    vector[0] = value
+ */
+func Getval(vector []string) string {
+	if len(vector) == 0 {
+		return ""
+	} else {
+		return vector[0]
+	}
 }
 
+func Putval(vector *[]string, value string) {
+	if len(*vector) == 0 {
+		*vector = append(*vector, value)
+	} else {
+		(*vector)[0] = value
+	}
+}
 
 // set operations
 
 // fcompress - order and remove duplicates from a list
-func fcompress(lista []string) {
-    sort.String(lista)
-    listy := []string{}
-    listy = append(listy, lista[0])
-    elema := lista[0]
-    for _, i := range lista {
-        if elema != i {
-            listy = append(listy, i)
-        }
-        elema = i
-    }
-    lista = listy  
+func Fcompress(lista *[]string) {
+	if len(*lista) > 0 {
+		listx := *lista
+		sort.Strings(listx)
+		listy := []string{}
+		listy = append(listy, listx[0])
+		elema := listx[0]
+		for _, i := range listx {
+			if strings.Compare(elema, i) != 0 {
+				listy = append(listy, i)
+			}
+			elema = i
+		}
+		*lista = listy
+	}
 }
 
 // fmember - determine if an element is a member of a list
-func fmember(lista []string, elema string) bool {
-    for _, i := range lista {
-        if elema == i {
-            return true
-        }
-    }
-    return false
+func Fmember(lista []string, elema string) bool {
+	for _, i := range lista {
+		if elema == i {
+			return true
+		}
+	}
+	return false
 }
 
 // fremove - remove all occurances of an element from a list
-func fremove(lista []string, elema string) {
-    listy := []string{}
-    for _, i := lista {
-        if elema != i {
-            listy = append(listy, i)
-        }
-    }
-    lista = listy
+func Fremove(lista *[]string, elema string) {
+	listx := *lista
+	listy := []string{}
+	for _, i := range listx {
+		if elema != i {
+			listy = append(listy, i)
+		}
+	}
+	*lista = listy
 }
 
 // funion - return union of two lists
-func funion(lista, listb []string) []string {
-    listx := append(lista, listb...)
-    fcompress(listx)
-    return listx
+func Funion(lista, listb []string) []string {
+	listx := append(lista, listb...)
+	Fcompress(&listx)
+	return listx
 }
 
 // fintersection - return intersection of two lists
-func fintersection(lista, listb []string) []string {
-    listx := []string{}
-    fcompress(lista)
-    fcompress(listb)
-    for _, i := range lista {
-        if fmember(listb, i) > 0 {
-            listx = append(listx, i)
-        }
-    }
-    return listx
+func Fintersection(lista, listb []string) []string {
+	listx := []string{}
+	Fcompress(&lista)
+	Fcompress(&listb)
+	for _, i := range lista {
+		if Fmember(listb, i) {
+			listx = append(listx, i)
+		}
+	}
+	return listx
 }
 
 // fdifference - return difference of two lists
-func fdifference(lista, listb []string) []string {
-    listx := []string{}
-    fcompress(lista)
-    fcompress(listb)
-    for _, i := range lista {
-        if fmember(listb, i)  == 0{
-            listx = append(listx, i)
-        }
-    }
-    return listx
+func Fdifference(lista, listb []string) []string {
+	listx := []string{}
+	Fcompress(&lista)
+	Fcompress(&listb)
+	for _, i := range lista {
+		if !Fmember(listb, i)  {
+			listx = append(listx, i)
+		}
+	}
+	return listx
 }
 
 // fdisjunction - return disjunction of two lists
-func fdisjunction(lista, listb []string) []string {
-    listx := []string{}
-    fcompress(lista)
-    fcompress(listb)
-    for _, i := range lista {
-        if fmember(lista, i) == 0 {
-            listx = append(listx, i)
-        }
-    }
-    sort.String(listx)
-    return listx
+func Fdisjunction(lista, listb []string) []string {
+	listx := []string{}
+	Fcompress(&lista)
+	Fcompress(&listb)
+	for _, i := range lista {
+		if !Fmember(listb, i) {
+			listx = append(listx, i)
+		}
+	}
+	for _, i := range listb {
+		if !Fmember(lista, i) {
+			listx = append(listx, i)
+		}
+	}
+	sort.Strings(listx)
+	return listx
 }
 
 // fequivalence - determine if two lists are equivalent
-func fequivalence(lista, listb []string) bool {
-    fcompress(lista)
-    fcompress(listb)
-    if string.Compare(lista, listb) == 0 {
-        return true
-    } else {
-        return false
-    }    
+func Fequivalence(lista, listb []string) bool {
+	Fcompress(&lista)
+	Fcompress(&listb)
+	if strings.Compare(strings.Join(lista, ","), strings.Join(listb, ",")) == 0 {
+		return true
+	} else {
+		return false
+	}
 }
 
 // fsubset - determine if a list is a subset of another list
-func fsubset(lista, listb []string) bool {
-    found := 0
-    fcompress(lista)
-    fcompress(listb)
-    for _, i := range lista {
-        if fmember(listb, i) {
-            found++
-        }
-    }
-    if found == 0 {
-        return false
-    } else {
-        return true
-    }
+func Fsubset(lista, listb []string) bool {
+	found := 0
+	Fcompress(&lista)
+	Fcompress(&listb)
+	for _, i := range lista {
+		if Fmember(listb, i) {
+			found++
+		}
+	}
+	if found < len(lista) {
+		return false
+	} else {
+		return true
+	}
 }
 
 // ffind - find all frames having a given value facet
-func ffind(sname string) []string {
-    listx := []string{}
-    for _, i := range flistf() {
-        if fexistv(i, sname) {
-            listx = append(listx, i)
-        }
-    }
-    return listx
+func Ffind(sname string) []string {
+	listx := []string{}
+	for _, i := range Flistf() {
+		if Fexistv(i, sname) {
+			listx = append(listx, i)
+		}
+	}
+	return listx
 }
 
 // ffindeq - find all frames having a given value for a given value facet
-func ffindeq(sname string, args ...string) []string {
-    listx := []string{}
-    for _, i := range flistf() {
-        if fexistv(i, sname) {
-	        if fgetv(i, sname) == args {
-                listx = append(listx, i)
-            }   
-        }
-    }
-    return listx
+func Ffindeq(sname string, args string) []string {
+	listx := []string{}
+	for _, i := range Flistf() {
+		if Fexistv(i, sname) {
+			if Fgetv(i, sname) == args {
+				listx = append(listx, i)
+			}
+		}
+	}
+	return listx
 }
 
 // ffindne - find all frames not having a given value for a given value facet
-func ffindne(sname string, args ...string) []string {
-    listx := []string{}
-    for _, i := range flistf() {
-        if fexistv(i, sname) {
-	        if fgetv(i, sname) != args {
-	            listx = append(listx, i)
-	        }
-	    }
-    }
-    return listx
+func Ffindne(sname string, args string) []string {
+	listx := []string{}
+	for _, i := range Flistf() {
+		if Fexistv(i, sname) {
+			if Fgetv(i, sname) != args {
+				listx = append(listx, i)
+			}
+		}
+	}
+	return listx
 }
 
 // frames functions
 
 // fexistf - determine if a frame exists
-func fexistf(fname string) bool {
-    return fmember(fframes, fname)
+func Fexistf(fname string) bool {
+	frames := []string{}
+	for k, _ := range fframes {
+		frames = append(frames, k)
+	}
+	return Fmember(frames, fname)
 }
 
 // fcreatef - create a frame
-func fcreatef(fname string) bool {
-    if !fexistf(fname) {
-        fframes[fname] = Frame{fname+",slots": {}} 
-        return true
-    } else {
-       return false
-    }
+func Fcreatef(fname string) bool {
+	if !Fexistf(fname) {
+		fframes[fname] = Frame{fname + ",slots": {}}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fremovef - remove a frame
-func fremovef(fname string) bool {
-    if fexistf(fname) {
-        delete(fframes, fname)
-    	return true
-    } else {
-        return false
-    }
+func Fremovef(fname string) bool {
+	if Fexistf(fname) {
+		delete(fframes, fname)
+		return true
+	} else {
+		return false
+	}
 }
 
 // flistf - return list of frames
-func flistf() []string {
-    frames := []string{}
-    for _, k := range fframes {
-        frames = append(frames, k)
-    }
-    return frames
+func Flistf() []string {
+	frames := []string{}
+	for k, _ := range fframes {
+		frames = append(frames, k)
+	}
+	return frames
 }
 
 // fcopyf - create a new frame based on another frame
-func fcopyf(fname1, fname2 string) bool {
-    if fexistf(fname1) {
-        fremovef(fname2)
-    	fcreatef(fname2)
-    	for _, i := range fframes[fname1] {
-    	    if strings.HasSuffix(i, "slots") {
-    	        copy(fframes[fname2][fname2+",slots"], fframes[fname1][fname1+",slots"])
-            } else {
-                copy(fframes[fname2][i], fframes[fname1][i])
-    	    }
-    	}
-    	return true
-    } else {
-        return false
-    }
+func Fcopyf(fname1, fname2 string) bool {
+	if Fexistf(fname1) {
+		Fremovef(fname2)
+		Fcreatef(fname2)
+		for k, _ := range fframes[fname1] {
+			if strings.HasSuffix(k, "slots") {
+				copy(fframes[fname2][fname2+",slots"], fframes[fname1][fname1+",slots"])
+			} else {
+				copy(fframes[fname2][k], fframes[fname1][k])
+			}
+		}
+		return true
+	} else {
+		return false
+	}
 }
-    
+
 // fcomparef - determine if two frames are equivalent
-func fcomparef(fname1, fname2 []string) bool {
-    if fexistf(fname1) && fexistf(fname2) {
-        x := fframes[fname1][fname1+",slots"]
-    	y := fframes[fname2][fname2+",slots"]
-    	if fequivalence(x, y) {
-    	    return true
-    	} else {
-    	    return false
-    	}
-    } else {
-        return false
-    }
+func Fcomparef(fname1, fname2 string) bool {
+	if Fexistf(fname1) && Fexistf(fname2) {
+		x := fframes[fname1][fname1+",slots"]
+		y := fframes[fname2][fname2+",slots"]
+		if Fequivalence(x, y) {
+			return true
+		} else {
+			return false
+		}
+	} else {
+		return false
+	}
 }
 
 // fmergef - merge slots of one frame into another frame
-func fmergef(fname1, fname2 []string) bool {
-    if fexistf(fname1) && fexistf(fname2) {
-        y := fframes[fname2][fname2+",slots"]
-    	for _, i := range fframes[fname1] {
-    	    if i != fname1+",set" && i != fname1+",slots" {
-    	        sname := strings.Split(i, ",")[0]
-                if !fmember(y, sname) {
-                    copy(fframes[fname2][i], fframes[fname1][i])
-                    slots := append(fframes[fname2][fname2+",slots"], sname)
-                    copy(fframes[fname2][fname2+",slots"], slots)
-        		}
-            }
-        }
-        return true
-    } else {
-        return false
-    }
+func Fmergef(fname1, fname2 string) bool {
+	if Fexistf(fname1) && Fexistf(fname2) {
+		y := fframes[fname2][fname2+",slots"]
+		for k, _ := range fframes[fname1] {
+			if k != fname1+",set" && k != fname1+",slots" {
+				sname := strings.Split(k, ",")[0]
+				if !Fmember(y, sname) {
+					copy(fframes[fname2][k], fframes[fname1][k])
+					slots := append(fframes[fname2][fname2+",slots"], sname)
+					copy(fframes[fname2][fname2+",slots"], slots)
+				}
+			}
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // floadf - load a frame into memory
-func floadf(fname string) bool {
-    if _, err := os.Stat(path); os.IsExist(err) {
-        if !fexistf(fname) {
-            fcreatef(fname)
-            fh, err := os.Open(fname)
-            defer fh.Close()
-            reader := bufio.NewReader(fh)
-            for {
-                line, _, err := reader.ReadLine()
-                if err != nil {break}
-                aname := strings.Split(line, " ")[0]
-                avalue := strings.TrimPrefix(line, aname+" ")                
-                fframes[fname][aname] = strings.Split(avalue, ",")
-            }
-            return true
-        }
-        return false
-    }
-    return false
+func Floadf(fname string) bool {
+	if _, err := os.Stat(fname); os.IsExist(err) {
+		if !Fexistf(fname) {
+			Fcreatef(fname)
+			fh, _ := os.Open(fname)
+			defer fh.Close()
+			reader := bufio.NewReader(fh)
+			for {
+				line, _, err := reader.ReadLine()
+				if err != nil {
+					break
+				}
+				aname := strings.Split(string(line), " ")[0]
+				avalue := strings.TrimPrefix(string(line), aname+" ")
+				fframes[fname][aname] = strings.Split(avalue, ",")
+			}
+			return true
+		}
+		return false
+	}
+	return false
 }
 
 // fstoref - store a frame on disk
-func fstoref(fname string) bool {
-    if fexistf(fname) {
-        fh, err := os.Create(fname)
-        defer fh.Close()
-        writer := bufio.NewWriter(fh)
-        for _, i := range fframes[fname] {
-            writer.WriteString(i+" "+strings.Join(fframes[fname][i], ",")+"\n") 
-        }
-        fh.Flush()
-        return true
-    }
-    return false
+func Fstoref(fname string) bool {
+	if Fexistf(fname) {
+		fh, _ := os.Create(fname)
+		defer fh.Close()
+		writer := bufio.NewWriter(fh)
+		for k, _ := range fframes[fname] {
+			writer.WriteString(k + " " + strings.Join(fframes[fname][k], ",") + "\n")
+		}
+		writer.Flush()
+		return true
+	}
+	return false
 }
 
 // fupdatef - update structure of a frame from another frame
-func fupdatef(fname1, fname2 []string) bool {
-    if fexistf(fname1) && fexistf(fname2) {
-        copy(fframes[fname2][fname2+",slots"], fframes[fname1][fname1+",slots"])
-        for _, i := range fframes[fname2] {
-            if !strings.HasSuffix(i, "set") && !strings.HasSuffix(i, "slots") {
-                if _, err := fframes[fname1][i]; err != nil {
-                    delete(fframes[fname2], i)
-                }
-            }
-        }
-        for _, i := range fframes[fname1] {
-            if !strings.HasSuffix(i, "set") && !strings.HasSuffix(i, "slots") { 
-                if _, err := fframes[fname2][i]; err != nil {
-                    copy(fframes[fname2][i], fframes[fname1][i])
-                }
-            }
-        }
-        return true
-    } else {   
-        return false
-    }
+func Fupdatef(fname1, fname2 string) bool {
+	if Fexistf(fname1) && Fexistf(fname2) {
+		copy(fframes[fname2][fname2+",slots"], fframes[fname1][fname1+",slots"])
+		for k, _ := range fframes[fname2] {
+			if !strings.HasSuffix(k, "set") && !strings.HasSuffix(k, "slots") {
+				if _, err := fframes[fname1][k]; err {
+					delete(fframes[fname2], k)
+				}
+			}
+		}
+		for k, _ := range fframes[fname1] {
+			if !strings.HasSuffix(k, "set") && !strings.HasSuffix(k, "slots") {
+				if _, err := fframes[fname2][k]; err {
+					copy(fframes[fname2][k], fframes[fname1][k])
+				}
+			}
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // ffilterf - filter slots of a frame based on another frame
-func ffilterf(fname1, fname2 []string) bool {
-    if fexistf(fname1) && fexistf(fname2) {
-        for _, i := range fframes[fname2] {
-            if !strings.HasSuffix(i, "set") && !strings.HasSuffix(i, "slots") {
-                if _, err := fframes[fname1][i]; err != nil {
-                    delete(fframes[fname2][i])
-                }
-            }
-        }
-        return true
-    } else {
-        return false
-    }
+func Ffilterf(fname1, fname2 string) bool {
+	if Fexistf(fname1) && Fexistf(fname2) {
+		for k, _ := range fframes[fname2] {
+			if !strings.HasSuffix(k, "set") && !strings.HasSuffix(k, "slots") {
+				if _, err := fframes[fname1][k]; err {
+					delete(fframes[fname2], k)
+				}
+			}
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fmethods functions
 
 // fcreatex - create a method in fmethods
-func fcreatex(mname string) bool {
-    if _, err := fmethods[mname]; err != nil {
-        fmethods[mname] = func(string){}
-        return true
-    } else {
-        return false
-    }
+func Fcreatex(mname string) bool {
+	if _, err := fmethods[mname]; err {
+		fmethods[mname] = func(string) {}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fremovex - remove a method from fmethods
-func fremovex(mname string) bool {
-    if _, err := fmethods[mname]; err == nil {
-        delete(fmethods, mname)
-        return true
-    } else {
-        return false
-    }
-    
+func Fremovex(mname string) bool {
+	if _, err := fmethods[mname]; err {
+		delete(fmethods, mname)
+		return true
+	} else {
+		return false
+	}
+
 }
 
 // fexistx - determine if a method exists in fmethods
-func fexistx(mname string) bool {
-    if _, err := fmethods[mname]; err == nil {
-        return true
-    } else {
-        return false
-    }
+func Fexistx(mname string) bool {
+	if _, err := fmethods[mname]; err {
+		return true
+	} else {
+		return false
+	}
 }
 
 // flistx - return list of methods in fmethods
-func flistx() []string {
-    methods := []string{}
-    for _, k := range fmethods {
-        fmethods = append(fmethods, k)
-    }
-    return fmethods
+func Flistx() []string {
+	methods := []string{}
+	for k, _ := range fmethods {
+		methods = append(methods, k)
+	}
+	return methods
 }
 
 // fgetx - get a method from fmethods
-func fgetx(mname string) (func(string), err) {
-    if _, err := fmethods[mname]; err == nil {
-        return fmethods[mname]
-    } else {
-        return func(string){}, err
-    }
+func Fgetx(mname string) (func(string), bool) {
+	if _, err := fmethods[mname]; err {
+		return fmethods[mname], true
+	} else {
+		return func(string) {}, false
+	}
 }
 
 // fputx - put a method in fmethods
-func fputx(mname string, method func(string)) bool {
-    if _, err := fmethods[mname]; err == nil {
-        fmethods[mname] = method
-        return true
-    } else {
-        return false
-    }
+func Fputx(mname string, method func(string)) bool {
+	if _, err := fmethods[mname]; err {
+		fmethods[mname] = method
+		return true
+	} else {
+		return false
+	}
 }
 
 // slot functions
 
 // fexists - determine if a slot exists
-func fexists(fname, sname string) bool {
-    if fexistf(fname) {
-        if fmember(fframes[fname][fname+",slots"], sname) {
-            return true
-        } else {
-            return false
-        }
-    } else {
-        return false
-    }
+func Fexists(fname, sname string) bool {
+	if Fexistf(fname) {
+		if Fmember(fframes[fname][fname+",slots"], sname) {
+			return true
+		} else {
+			return false
+		}
+	} else {
+		return false
+	}
 }
 
 // fcreates - create a slot
-func fcreates(fname, sname string) bool {
-    if fexistf(fname) {
-        if !fmember(fframes[fname][fname+",slots"], sname) {
-            slots = append(fframes[fname][fname+",slots"], sname)
-            copy(fframes[fname][fname+",slots"], slots)
-            fframes[fname][sname+",facets"] = []string{}
-            return true
-        } else {
-            return false
-        }
-    } else {
-        return false
-    }
+func Fcreates(fname, sname string) bool {
+	if Fexistf(fname) {
+		if !Fmember(fframes[fname][fname+",slots"], sname) {
+			slots := append(fframes[fname][fname+",slots"], sname)
+			fframes[fname][fname+",slots"] = slots
+			fframes[fname][sname+",facets"] = []string{}
+			return true
+		} else {
+			return false
+		}
+	} else {
+		return false
+	}
 }
 
 // fremoves - remove a slot
-func fremoves(fname, sname string) bool {
-    if fexists(fname, sname) {
-        for _, i := range fframes[fname] {
-            sname2 := strings.Split(i, ",")[0]
-            if sname == sname2 {
-                delete(fframes[fname], i)
-            }
-        }
-        fremove(&fframes[fname][fname+",slots"], sname)
-        return true
-    } else {
-        return false
-    }
+func Fremoves(fname, sname string) bool {
+	if Fexists(fname, sname) {
+		for k, _ := range fframes[fname] {
+			sname2 := strings.Split(k, ",")[0]
+			if sname == sname2 {
+				delete(fframes[fname], k)
+			}
+		}
+		slots := fframes[fname][fname+",slots"]
+		Fremove(&slots, sname)
+		copy(fframes[fname][fname+",slots"], slots)
+		return true
+	} else {
+		return false
+	}
 }
 
 // flists - list slots of a frame
-func flists(fname string) []string {
-    if fexistf(fname) {
-        return fframes[fname][fname+",slots"]
-    } else {
-        return []string{}
-    }
+func Flists(fname string) []string {
+	if Fexistf(fname) {
+		return fframes[fname][fname+",slots"]
+	} else {
+		return []string{}
+	}
 }
 
 // fcopys - copy a slot into another frame
-func fcopys(fname1, sname, fname2 string) bool {
-    if fexists(fname1, sname) && fexistf(fname2) {
-        if fmember(fframes[fname2][fname2+",slots"], sname) {
-            slots = append(fframes[fname2][fname2+",slots"], sname)
-            copy(fframes[fname2][fname2+",slots"], slots)
-        }
-        for _, i := range fframes[fname1] {
-            sname2 := strings.Split(i, ",")[0]
-            if sname == sname2 {
-                copy(fframes[fname2][i], fframes[fname1][i])
-            }
-        }
-        return true
-    } else {
-        return false
-    }
+func Fcopys(fname1, sname, fname2 string) bool {
+	if Fexists(fname1, sname) && Fexistf(fname2) {
+		if Fmember(fframes[fname2][fname2+",slots"], sname) {
+			slots := append(fframes[fname2][fname2+",slots"], sname)
+			copy(fframes[fname2][fname2+",slots"], slots)
+		}
+		for k, _ := range fframes[fname1] {
+			sname2 := strings.Split(k, ",")[0]
+			if sname == sname2 {
+				copy(fframes[fname2][k], fframes[fname1][k])
+			}
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fcompares - compare a slot in two frames
-func fcompares(fname1, sname, fname2 string) bool {
-    cmp := true
-    if fexists(fname1, sname) && fexists(fname2, sname) {
-        x := fframes[fname1][sname+",facets"]
-        y := fframes[fname2][sname+",facets"]
-        if fequivalence(x, y) {
-            for _, i := range fframes[fname1] {
-                sname2 := strings.Split(i, ",")[0]
-                if sname == sname2 {
-                    x = fframes[fname1][i]
-                    y = fframes[fname2][i]
-                    if x != y {
-                        cmp = false
-                    }
-                }
-            }
-            return cmp
-        } else {
-            return false
-        }
-    } else {
-        return false
-    }
+func Fcompares(fname1, sname, fname2 string) bool {
+	cmp := true
+	if Fexists(fname1, sname) && Fexists(fname2, sname) {
+		x := fframes[fname1][sname+",facets"]
+		y := fframes[fname2][sname+",facets"]
+		if Fequivalence(x, y) {
+			for k, _ := range fframes[fname1] {
+				sname2 := strings.Split(k, ",")[0]
+				if sname == sname2 {
+					x = fframes[fname1][k]
+					y = fframes[fname2][k]
+					if strings.Compare(strings.Join(x, ","), strings.Join(y, ",")) != 0 {
+						cmp = false
+					}
+				}
+			}
+			return cmp
+		} else {
+			return false
+		}
+	} else {
+		return false
+	}
 }
 
 // flistt - list of facet types in a slot
-func flistt(fname, sname string) []string {
-    if fexists(fname, sname) {
-        return fframes[fname][sname+",facets"]
-    } else {
-        return []string{}
-    }
+func Flistt(fname, sname string) []string {
+	if Fexists(fname, sname) {
+		return fframes[fname][sname+",facets"]
+	} else {
+		return []string{}
+	}
 }
 
 // fexistrx - determine if a reference facet exists (internal)
-func fexistrx(fname, sname string) bool {
-    fexists(fname, sname) {
-        if fmember(fframes[fname][sname+",facets"], "ref") {
-            return true
-        } else {
-            return false
-        }
-    } else {
-        return false
-    }
+func Fexistrx(fname, sname string) bool {
+	if Fexists(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "ref") {
+			return true
+		} else {
+			return false
+		}
+	} else {
+		return false
+	}
 }
 
 // fexistr - determine if a reference facet exists
-func fexistr(fname, sname string) bool {
-    if fexistrx(fname, sname) {
-        if fmember(fframes[fname][sname+",facets"], "ifexistr") {
-            fmethods[getval(fframes[fname][sname+",ifexistr"])](fname)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fexistr(fname, sname string) bool {
+	if Fexistrx(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "ifexistr") {
+			fmethods[Getval(fframes[fname][sname+",ifexistr"])](fname)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fcreater - create a reference facet
-func fcreater(fname, sname string) bool {
-    if fexists(fname, sname) {
-        if fmember(fframes[fname][sname+",facets"], "ref") {
-            x := fmember(fframes[fname][sname+",facets"], "method")
-            y := fmember(fframes[fname][sname+",facets"], "value")
-            if !(x || y) {
-                slots := append(fframes[fname][sname+",facets"], "ref")
-                copy(fframes][fname[sname+",facets"], slots)
-                fframes[fname][sname+",ref"] = []string{}
-                if fmember(fframes[fname][sname+",facets"], "ifcreater") {
-                    fmethods[getval(fframes[fname][sname+",ifcreater"])](fname)
-                }
-                return true
-            } else {
-                return false
-            }
-        } else {
-            return false
-        }
-    } else {
-        return false
-    }
+func Fcreater(fname, sname string) bool {
+	if Fexists(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "ref") {
+			x := Fmember(fframes[fname][sname+",facets"], "method")
+			y := Fmember(fframes[fname][sname+",facets"], "value")
+			if !(x || y) {
+				slots := append(fframes[fname][sname+",facets"], "ref")
+				copy(fframes[fname][sname+",facets"], slots)
+				fframes[fname][sname+",ref"] = []string{}
+				if Fmember(fframes[fname][sname+",facets"], "ifcreater") {
+					fmethods[Getval(fframes[fname][sname+",ifcreater"])](fname)
+				}
+				return true
+			} else {
+				return false
+			}
+		} else {
+			return false
+		}
+	} else {
+		return false
+	}
 }
 
 // fremover - remove a reference facet
-func fremover(fname, sname string) bool {
-    if fexistrx(fname, sname) {
-        if fmember(fframes[fname][sname+",facets"], "ifremover") {
-            fmethods[getval(fframes[fname][sname+",ifremover"])](fname)
-        }
-        delete(fframes[fname][sname+",ref"])
-        fremove(fframes[fname][sname+",facets"], "ref")
-        return true
-    } else {
-        return false
-    }
+func Fremover(fname, sname string) bool {
+	if Fexistrx(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "ifremover") {
+			fmethods[Getval(fframes[fname][sname+",ifremover"])](fname)
+		}
+		delete(fframes[fname], sname+",ref")
+		facets := fframes[fname][sname+",facets"]
+		Fremove(&facets, "ref")
+		copy(fframes[fname][sname+",facets"], facets)
+		return true
+	} else {
+		return false
+	}
 }
 
 // fgetr - get a value from a reference facet
-func fgetr(fname, sname string) string {
-    if fexistrx(fname, sname) {
-        if fmember(fframes[fname][sname+",facets"], "ifgetr") {
-            fmethods[getval(fframes[fname][sname+",ifgetr"])](fname)
-        }
-        return getval(fframes[fname][sname+",ref"])
-    } else {
-        return ""
-    }
+func Fgetr(fname, sname string) string {
+	if Fexistrx(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "ifgetr") {
+			fmethods[Getval(fframes[fname][sname+",ifgetr"])](fname)
+		}
+		return Getval(fframes[fname][sname+",ref"])
+	} else {
+		return ""
+	}
 }
 
 // fputr - put a value in a reference facet
-func fputr(fname1, sname, fname2 string) bool {
-    if fexistrx(fname1, sname) {
-        putval(fframes[fname][sname+",ref"], fname2)
-        if fmember(fframes[fname][sname+",facets"], "ifputr") {
-            fmethods[getval(fframes[fname][sname+",ifputr"])](fname1)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fputr(fname1, sname, fname2 string) bool {
+	if Fexistrx(fname1, sname) {
+		ref := fframes[fname1][sname+",ref"]
+		Putval(&ref, fname2)
+		fframes[fname1][sname+",ref"] = ref
+		if Fmember(fframes[fname1][sname+",facets"], "ifputr") {
+			fmethods[Getval(fframes[fname1][sname+",ifputr"])](fname1)
+		}
+		return true
+	} else {
+		return false
+	}
 }
-
 
 // flistr - list of references in a frame
-func flistr(fname string) []string {
-    flist := []string{}
-    if fexistf(fname) {
-        for _, i := range fframes[fname] {
-            sname, ftype := strings.Split(i, ",")
-            if ftype == "ref" {
-                flist = append(flist, sname)
-            }
-        }
-    }
-    return flist
+func Flistr(fname string) []string {
+	flist := []string{}
+	if Fexistf(fname) {
+		for k, _ := range fframes[fname] {
+			sname := strings.Split(k, ",")[0]
+			ftype := strings.Split(k, ",")[1]
+			if ftype == "ref" {
+				flist = append(flist, sname)
+			}
+		}
+	}
+	return flist
 }
 
-
-
 // fpathr - return chain of references
-func fpathr(fname, sname string) []string {
-    plist := []string{}
-    if fexists(fname, sname) {
-        plist := append(plist, fname)
-        if fmember(fframes[fname][sname+",facets"], "ref") {
-            fname2 := getval(fframes[fname][sname+",ref"])
-            fpathrr(fname2, sname, plist)
-        } else {
-            return plist
-        }
-    } else {
-        return plist
-    }
+func Fpathr(fname, sname string) []string {
+	plist := []string{}
+	if Fexists(fname, sname) {
+		plist := append(plist, fname)
+		if Fmember(fframes[fname][sname+",facets"], "ref") {
+			fname2 := Getval(fframes[fname][sname+",ref"])
+			fpathrr(fname2, sname, plist)
+		} else {
+			return plist
+		}
+	} else {
+		return plist
+	}
+	// useless return statement
+	return plist
 }
 
 // recursive fpathr (blame go)
 func fpathrr(fname string, sname string, plist []string) []string {
-    if fexists(fname, sname) {
-        if !fmember(plist, fname) {
-            plist = append(plist, fname)
-            if fmember(fframes[fname][sname+",facets"], "ref") {
-                fname2 := getval(fframes[fname][sname+",ref"])
-                fpathrr(fname2, sname, plist)
-            } else {
-                return plist
-            }
-        } else {
-            return plist
-        }
-    } else {
-        return plist
-    }
+	if Fexists(fname, sname) {
+		if !Fmember(plist, fname) {
+			plist = append(plist, fname)
+			if Fmember(fframes[fname][sname+",facets"], "ref") {
+				fname2 := Getval(fframes[fname][sname+",ref"])
+				fpathrr(fname2, sname, plist)
+			} else {
+				return plist
+			}
+		} else {
+			return plist
+		}
+	} else {
+		return plist
+	}
+	// useless return statement
+	return plist
 }
 
 // fexistm - determine if a method facet exists
-func fexistm(fname, sname string) bool {
-    found := false
-    if fexists(fname, sname) {
-        if fexistrx(fname, sname) {
-            fname2 := fframes[fname][sname+",ref"]
-            if fmember(fframes[fname][sname+",facets"], "ifref") {
-                fmethods[getval(fframes[fname][sname+",ifref"])](fname)
-            }
-            found = fexistm(fname2, sname)
-        }
-        if fmember(fframes[fname][sname+",facets"], "method") {}
-            fmember(fframes[fname][sname+",facets"], "ifexistm") {
-                fmethods[getval(fframes[fname][sname+",ifexistm"])](fname)
-        }
-        found = true
-    }
-    return found
+func Fexistm(fname, sname string) bool {
+	found := false
+	if Fexists(fname, sname) {
+		if Fexistrx(fname, sname) {
+			fname2 := fframes[fname][sname+",ref"][0]
+			if Fmember(fframes[fname][sname+",facets"], "ifref") {
+				fmethods[Getval(fframes[fname][sname+",ifref"])](fname)
+			}
+			found = Fexistm(fname2, sname)
+		}
+		if Fmember(fframes[fname][sname+",facets"], "method") {
+		}
+		if Fmember(fframes[fname][sname+",facets"], "ifexistm") {
+			fmethods[Getval(fframes[fname][sname+",ifexistm"])](fname)
+		}
+		found = true
+	}
+	return found
 }
 
 // fcreatem - create a method facet
-func fcreatem(fname, sname string) bool {
-    created := false
-    if fexists(fname, sname) {
-        if fmember(fframes[fname][sname+",facets"], "method") ||
-           fmember(fframes[fname][sname+",facets"], "value") {
-            created = true
-        } else {
-            if fmember(fframes[fname][sname+",facets"], "ref") {
-                fname2 := fframes[fname][sname+",ref"]
-                if fmember(fframes[fname][sname+",facets"], "ifref") {
-                    fmethods[getval(fframes[fname][sname+",ifref"])](fname)
-                }
-                created = fcreatem(fname2, sname)
-            } else {
-                fframes[fname][sname+",method"] = []string{}
-                facets = append(fframes[fname][sname+",facets"], "method")
-                copy(fframes[fname][sname+",facets"], facets)
-                if fmember(fframes[fname][sname+",facets"], "ifcreatem") {
-                    fmethods[getval(fframes[fname][sname+",ifcreatem"])](fname)
-                }
-                created = true
-            }
-        }
-    }
-    return created
+func Fcreatem(fname, sname string) bool {
+	created := false
+	if Fexists(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "method") ||
+			Fmember(fframes[fname][sname+",facets"], "value") {
+			created = true
+		} else {
+			if Fmember(fframes[fname][sname+",facets"], "ref") {
+				fname2 := fframes[fname][sname+",ref"][0]
+				if Fmember(fframes[fname][sname+",facets"], "ifref") {
+					fmethods[Getval(fframes[fname][sname+",ifref"])](fname)
+				}
+				created = Fcreatem(fname2, sname)
+			} else {
+				fframes[fname][sname+",method"] = []string{}
+				facets := append(fframes[fname][sname+",facets"], "method")
+				copy(fframes[fname][sname+",facets"], facets)
+				if Fmember(fframes[fname][sname+",facets"], "ifcreatem") {
+					fmethods[Getval(fframes[fname][sname+",ifcreatem"])](fname)
+				}
+				created = true
+			}
+		}
+	}
+	return created
 }
 
 // fremovem - remove a method facet
-func fremovem(fname, sname string) bool {
-    removed = false
-    if fexists(fname, sname) {
-        if fmember(fframes[fname][sname+",facets"], "ref") {
-            fname2 := fframes[fname][sname+",ref"]
-            if fmember(fframes[fname][sname+",facets"], "ifref") {
-                fmethods[getval(fframes[fname][sname+",ifref"])](fname)
-            }
-            removed = fremovem(fname2, sname)
-        } else {
-            if fmember(fframes[fname][sname+",facets"], "method") {
-                if fmember(fframes[fname][sname+",facets"], "ifremovem") {
-                    fmethods[getval(fframes[fname][sname+"ifremovem"])](fname)
-                }
-                delete(fframes[fname][sname+",method"])
-                fremove(fframes[fname][sname+",facets"], "method")
-                removed = true
-            }
-        }
-    }
-    return removed
+func Fremovem(fname, sname string) bool {
+	removed := false
+	if Fexists(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "ref") {
+			fname2 := fframes[fname][sname+",ref"][0]
+			if Fmember(fframes[fname][sname+",facets"], "ifref") {
+				fmethods[Getval(fframes[fname][sname+",ifref"])](fname)
+			}
+			removed = Fremovem(fname2, sname)
+		} else {
+			if Fmember(fframes[fname][sname+",facets"], "method") {
+				if Fmember(fframes[fname][sname+",facets"], "ifremovem") {
+					fmethods[Getval(fframes[fname][sname+"ifremovem"])](fname)
+				}
+				delete(fframes[fname], sname+",method")
+				facets := fframes[fname][sname+",facets"]
+				Fremove(&facets, "method")
+				copy(fframes[fname][sname+",facets"], facets)
+				removed = true
+			}
+		}
+	}
+	return removed
 }
 
 // fexecm - execute a method
-func fexexm(fname, sname string) bool {
-    executed := false
-    if fexists(fname, sname) {
-        fmember(fframes[fname][sname+",facets"], "ref") {
-            fname2 := fframes[fname][sname+",ref"]
-            if fmember(fframes[fname][sname+",facets"], "ifref") {
-                fmethods[getval(fframes[fname][sname+",ifref"])](fname)
-            }
-            executed = fexecm(fname2, sname)
-        } else {
-            if fmember(fframes[fname][sname+",facets"], "method") {
-                if fmember(fframes[fname][sname+",facets"], "ifexecm") {
-                    fmethods[getval(fframes[fname][sname+",ifexecm"])](fname)
-                }
-                fmethods[getval(fframes[fname][sname+",method"])](fname)
-                executed = true
-            }
-        }
-    }
-    return executed
+func Fexecm(fname, sname string) bool {
+	executed := false
+	if Fexists(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "ref") {
+			fname2 := fframes[fname][sname+",ref"][0]
+			if Fmember(fframes[fname][sname+",facets"], "ifref") {
+				fmethods[Getval(fframes[fname][sname+",ifref"])](fname)
+			}
+			executed = Fexecm(fname2, sname)
+		} else {
+			if Fmember(fframes[fname][sname+",facets"], "method") {
+				if Fmember(fframes[fname][sname+",facets"], "ifexecm") {
+					fmethods[Getval(fframes[fname][sname+",ifexecm"])](fname)
+				}
+				fmethods[Getval(fframes[fname][sname+",method"])](fname)
+				executed = true
+			}
+		}
+	}
+	return executed
 }
 
-// fgetm - get a value from a method 
-func fgetm(fname string, sname string) string {
-    pname := ""
-    if fexists(fname, sname) {
-        fmember(fframes[fname][sname+",facets"], "ref") {
-            fname2 := fframes[fname][sname+",ref"]
-            if fmember(fframes[fname][sname+",facets"], "ifref") {
-                fmethods[getval(fframes[fname][sname+",ifref"])](fname)
-            }
-            pname = fgetm(fname2, sname)
-        } else {
-            if fmember(fframes[fname][sname+",facets"], "method") {
-                if fmember(fframes[fname][sname+",facets"], "ifgetm") {
-                    fmethods[getval(fframes[fname][sname+",ifgetm"])](fname)
-                }
-                pname = getval(fframes[fname][sname+",method"])
-            }
-        }
-    }
-    return pname
+// fgetm - get a value from a method
+func Fgetm(fname string, sname string) string {
+	pname := ""
+	if Fexists(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "ref") {
+			fname2 := fframes[fname][sname+",ref"][0]
+			if Fmember(fframes[fname][sname+",facets"], "ifref") {
+				fmethods[Getval(fframes[fname][sname+",ifref"])](fname)
+			}
+			pname = Fgetm(fname2, sname)
+		} else {
+			if Fmember(fframes[fname][sname+",facets"], "method") {
+				if Fmember(fframes[fname][sname+",facets"], "ifgetm") {
+					fmethods[Getval(fframes[fname][sname+",ifgetm"])](fname)
+				}
+				pname = Getval(fframes[fname][sname+",method"])
+			}
+		}
+	}
+	return pname
 }
 
 // fputm - put a value in a method facet
-func fputm(fname, sname, args string) bool {
-    put := false
-    if fexists(fname, sname) {
-        fmember(fframes[fname][sname+",facets"], "ref") {
-            fname2 := fframes[fname][sname+",ref"]
-            if fmember(fframes[fname][sname+",facets"], "ifref") {
-                fmethods[getval(fframes[fname][sname+",ifref"])](fname)
-            }
-            put = fputm(fname2, sname, args)
-        } else {
-            if fmember(fframes[fname][sname+",facets"], "method") {
-                if fmember(fframes[fname][sname+",facets"], "ifputm") {
-                    fmethods[getval(fframes[fname][sname+",ifputm"])](fname)
-                }
-                putval(fframes[fname][sname+",method"], args)
-                put = true
-            }
-        }
-    }
-    return put
+func Fputm(fname, sname, args string) bool {
+	put := false
+	if Fexists(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "ref") {
+			fname2 := fframes[fname][sname+",ref"][0]
+			if Fmember(fframes[fname][sname+",facets"], "ifref") {
+				fmethods[Getval(fframes[fname][sname+",ifref"])](fname)
+			}
+			put = Fputm(fname2, sname, args)
+		} else {
+			if Fmember(fframes[fname][sname+",facets"], "method") {
+				if Fmember(fframes[fname][sname+",facets"], "ifputm") {
+					fmethods[Getval(fframes[fname][sname+",ifputm"])](fname)
+				}
+				method := fframes[fname][sname+",method"]
+				Putval(&method, args)
+				fframes[fname][sname+",method"] = method
+				put = true
+			}
+		}
+	}
+	return put
 }
 
 // fexistv - determine if a value facet exists
-func fexistv(fname, sname string) bool {
-    found := false
-    if fexists(fname, sname) {
-        if fexistrx(fname, sname) {
-            fname2 := fframes[fname][sname+",ref"]
-            if fmember(fframes[fname][sname+",facets"], "ifref") {
-                fmethods[getval(fframes[fname][sname+",ifref"])](fname)
-            }
-            found = fexistv(fname2, sname)
-        }
-        if fmember(fframes[fname][sname+",facets"], "value") {}
-            fmember(fframes[fname][sname+",facets"], "ifexistmv") {
-                fmethods[getval(fframes[fname][sname+",ifexistv"])](fname)
-        }
-        found = true
-    }
-    return found
+func Fexistv(fname, sname string) bool {
+	found := false
+	if Fexists(fname, sname) {
+		if Fexistrx(fname, sname) {
+			fname2 := fframes[fname][sname+",ref"][0]
+			if Fmember(fframes[fname][sname+",facets"], "ifref") {
+				fmethods[Getval(fframes[fname][sname+",ifref"])](fname)
+			}
+			found = Fexistv(fname2, sname)
+		}
+		if Fmember(fframes[fname][sname+",facets"], "value") {
+		}
+		if Fmember(fframes[fname][sname+",facets"], "ifexistmv") {
+			fmethods[Getval(fframes[fname][sname+",ifexistv"])](fname)
+		}
+		found = true
+	}
+	return found
 }
 
 // fcreatev - create a value facet
-func fcreatev(fname, sname string) bool {
-    created := false
-    if fexists(fname, sname) {
-        if fmember(fframes[fname][sname+",facets"], "method") ||
-           fmember(fframes[fname][sname+",facets"], "value") {
-            created = true
-        } else {
-            if fmember(fframes[fname][sname+",facets"], "ref") {
-                fname2 := fframes[fname][sname+",ref"]
-                if fmember(fframes[fname][sname+",facets"], "ifref") {
-                    fmethods[getval(fframes[fname][sname+",ifref"])](fname)
-                }
-                created = fcreatev(fname2, sname)
-            } else {
-                fframes[fname][sname+",value"] = []string{}
-                facets = append(fframes[fname][sname+",facets"], "value")
-                copy(fframes[fname][sname+",facets"], facets)
-                if fmember(fframes[fname][sname+",facets"], "ifcreatev") {
-                    fmethods[getval(fframes[fname][sname+",ifcreatev"])](fname)
-                }
-                created = true
-            }
-        }
-    }
-    return created
+func Fcreatev(fname, sname string) bool {
+	created := false
+	if Fexists(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "method") ||
+			Fmember(fframes[fname][sname+",facets"], "value") {
+			created = true
+		} else {
+			if Fmember(fframes[fname][sname+",facets"], "ref") {
+				fname2 := fframes[fname][sname+",ref"][0]
+				if Fmember(fframes[fname][sname+",facets"], "ifref") {
+					fmethods[Getval(fframes[fname][sname+",ifref"])](fname)
+				}
+				created = Fcreatev(fname2, sname)
+			} else {
+				fframes[fname][sname+",value"] = []string{}
+				facets := append(fframes[fname][sname+",facets"], "value")
+				fframes[fname][sname+",facets"] = facets
+				if Fmember(fframes[fname][sname+",facets"], "ifcreatev") {
+					fmethods[Getval(fframes[fname][sname+",ifcreatev"])](fname)
+				}
+				created = true
+			}
+		}
+	}
+	return created
 }
 
 // fremovev - remove a value facet
-func fremovev(fname, sname string) bool {
-    removed = false
-    if fexists(fname, sname) {
-        if fmember(fframes[fname][sname+",facets"], "ref") {
-            fname2 := fframes[fname][sname+",ref"]
-            if fmember(fframes[fname][sname+",facets"], "ifref") {
-                fmethods[getval(fframes[fname][sname+",ifref"])](fname)
-            }
-            removed = fremovev(fname2, sname)
-        } else {
-            if fmember(fframes[fname][sname+",facets"], "value") {
-                if fmember(fframes[fname][sname+",facets"], "ifremovev") {
-                    fmethods[getval(fframes[fname][sname+"ifremovev"])](fname)
-                }
-                delete(fframes[fname][sname+",value"])
-                fremove(fframes[fname][sname+",facets"], "value")
-                removed = true
-            }
-        }
-    }
-    return removed
+func Fremovev(fname, sname string) bool {
+	removed := false
+	if Fexists(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "ref") {
+			fname2 := fframes[fname][sname+",ref"][0]
+			if Fmember(fframes[fname][sname+",facets"], "ifref") {
+				fmethods[Getval(fframes[fname][sname+",ifref"])](fname)
+			}
+			removed = Fremovev(fname2, sname)
+		} else {
+			if Fmember(fframes[fname][sname+",facets"], "value") {
+				if Fmember(fframes[fname][sname+",facets"], "ifremovev") {
+					fmethods[Getval(fframes[fname][sname+"ifremovev"])](fname)
+				}
+				delete(fframes[fname], sname+",value")
+				facets := fframes[fname][sname+",facets"]
+				Fremove(&facets, "value")
+				copy(fframes[fname][sname+",facets"], facets)
+				removed = true
+			}
+		}
+	}
+	return removed
 }
 
 // fgetv - get a value from a value facet
-func fgetv(fname string, sname string) string {
-    pname := ""
-    if fexists(fname, sname) {
-        fmember(fframes[fname][sname+",facets"], "ref") {
-            fname2 := fframes[fname][sname+",ref"]
-            if fmember(fframes[fname][sname+",facets"], "ifref") {
-                fmethods[getval(fframes[fname][sname+",ifref"])](fname)
-            }
-            pname = fgetv(fname2, sname)
-        } else {
-            if fmember(fframes[fname][sname+",facets"], "value") {
-                if fmember(fframes[fname][sname+",facets"], "ifgetv") {
-                    fmethods[getval(fframes[fname][sname+",ifgetv"])](fname)
-                }
-                pname = getval(fframes[fname][sname+",value"])
-            }
-        }
-    }
-    return pname
+func Fgetv(fname string, sname string) string {
+	pname := ""
+	if Fexists(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "ref") {
+			fname2 := fframes[fname][sname+",ref"][0]
+			if Fmember(fframes[fname][sname+",facets"], "ifref") {
+				fmethods[Getval(fframes[fname][sname+",ifref"])](fname)
+			}
+			pname = Fgetv(fname2, sname)
+		} else {
+			if Fmember(fframes[fname][sname+",facets"], "value") {
+				if Fmember(fframes[fname][sname+",facets"], "ifgetv") {
+					fmethods[Getval(fframes[fname][sname+",ifgetv"])](fname)
+				}
+				pname = Getval(fframes[fname][sname+",value"])
+			}
+		}
+	}
+	return pname
 }
 
-
 // fputv - put a value in a value facet
-func fputv(fname, sname, args string) bool {
-    put := false
-    if fexists(fname, sname) {
-        fmember(fframes[fname][sname+",facets"], "ref") {
-            fname2 := fframes[fname][sname+",ref"]
-            if fmember(fframes[fname][sname+",facets"], "ifref") {
-                fmethods[getval(fframes[fname][sname+",ifref"])](fname)
-            }
-            put = fputv(fname2, sname, args)
-        } else {
-            if fmember(fframes[fname][sname+",facets"], "value") {
-                if fmember(fframes[fname][sname+",facets"], "ifputm") {
-                    fmethods[getval(fframes[fname][sname+",ifputm"])](fname)
-                }
-                putval(fframes[fname][sname+",value"], args)
-                put = true
-            }
-        }
-    }
-    return put
+func Fputv(fname, sname, args string) bool {
+	put := false
+	if Fexists(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], "ref") {
+			fname2 := fframes[fname][sname+",ref"][0]
+			if Fmember(fframes[fname][sname+",facets"], "ifref") {
+				fmethods[Getval(fframes[fname][sname+",ifref"])](fname)
+			}
+			put = Fputv(fname2, sname, args)
+		} else {
+			if Fmember(fframes[fname][sname+",facets"], "value") {
+				if Fmember(fframes[fname][sname+",facets"], "ifputm") {
+					fmethods[Getval(fframes[fname][sname+",ifputm"])](fname)
+				}
+				value := fframes[fname][sname+",value"]
+				Putval(&value, args)
+				fframes[fname][sname+",value"] = value
+				fmt.Println("value=",fframes[fname][sname+",value"])
+				put = true
+			}
+		}
+	}
+	return put
 }
 
 // fexistd - determine if a demon facet exists
-func fexistd(fnaem, sname, dname string) bool {
-    if fexists(fname, sname) {
-        if fmember(fframes[fname][sname+",facets"], dname) {
-            return true
-        } else {
-            return false
-        }
-    } else {
-        return false
-    }
+func Fexistd(fname, sname, dname string) bool {
+	if Fexists(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], dname) {
+			return true
+		} else {
+			return false
+		}
+	} else {
+		return false
+	}
 }
 
 // fcreated - create a demon facet
-func fcreated(fname, sname, dname string) bool {
-    if fexists(fname, sname) {
-        if fmemeber(fframes[fname][sname+",facets"], dname) {
-            fframes[fname][sname+","+dname] = []string{}
-            facets = append(fframes[fname][sname+",facets"], dname)
-            copy(fframes[fname][sname+",facets"], facets)
-            return true
-        } else {
-            return false
-        }
-    } else {
-        return false
-    }
+func Fcreated(fname, sname, dname string) bool {
+	if Fexists(fname, sname) {
+		if Fmember(fframes[fname][sname+",facets"], dname) {
+			fframes[fname][sname+","+dname] = []string{}
+			facets := append(fframes[fname][sname+",facets"], dname)
+			copy(fframes[fname][sname+",facets"], facets)
+			return true
+		} else {
+			return false
+		}
+	} else {
+		return false
+	}
 }
 
 // fremoved - remove a demon facet
-func fremoved(fname, sname, dname string) bool {
-    if fexistd(fname, sname, dname) {
-        delete(fframes[fname][sname+","+dname])
-        fremove(fframes[fname][sname+",facets"], dname)
-        return true
-    } else {
-        return false
-    }
+func Fremoved(fname, sname, dname string) bool {
+	if Fexistd(fname, sname, dname) {
+		delete(fframes[fname], sname+","+dname)
+		facets:= fframes[fname][sname+",facets"]
+		Fremove(&facets, dname)
+		copy(fframes[fname][sname+",facets"], facets)
+		return true
+	} else {
+		return false
+	}
 }
 
 // fgetd - get a value from a demon facet
-func fgetd(fname, sname, dname string) string {
-    if fexistd(fname, sname, dname) {
-        return getval(fframes[fname][sname+","+dname])
-    } else {
-        return ""
-    }
+func Fgetd(fname, sname, dname string) string {
+	if Fexistd(fname, sname, dname) {
+		return Getval(fframes[fname][sname+","+dname])
+	} else {
+		return ""
+	}
 }
 
 // fputd - put a value in a demon facet
-func fputd(fname, sname, dname, args) bool {
-    if fexistd(fname, sname, dname) {
-        putval(fframes[fname][sname+","+dname], args)
-        return true
-    } else {
-        return false
-    }
+func Fputd(fname, sname, dname, args string) bool {
+	if Fexistd(fname, sname, dname) {
+		demon := fframes[fname][sname+","+dname]
+		Putval(&demon, args)
+		fframes[fname][sname+","+dname] = demon
+		return true
+	} else {
+		return false
+	}
 }
 
 // fexecd - directly execute a demon
-func fexecd(fname, sname, dname string) bool {
-    if fexistd(fname, sname, dname) {
-        fmethods[getval(fframes[fname][sname+","+dname])](fname)
-        return true
-    } else {
-        return false
-    }
+func Fexecd(fname, sname, dname string) bool {
+	if Fexistd(fname, sname, dname) {
+		fmethods[Getval(fframes[fname][sname+","+dname])](fname)
+		return true
+	} else {
+		return false
+	}
 }
 
 // fcreatefs - create a frameset
-func fcreatefs(name string) bool {
-    if !fexistf(name) {
-        fframes[fname] = Frame{name+",slots": {}}
-        fframes[fname][name+",set"] = []string{}
-        return true
-    } else {
-       return false
-    }
-}       
+func Fcreatefs(name string) bool {
+	if !Fexistf(name) {
+		fframes[name] = Frame{name + ",slots": {}}
+		fframes[name][name+",set"] = []string{}
+		return true
+	} else {
+		return false
+	}
+}
 
 // fremovefs - remove a frameset
-func fremovefs(name string) bool {
-    if fremovef(name) {
-        return true
-    } else {
-        return false
-    }
+func Fremovefs(name string) bool {
+	if Fremovef(name) {
+		return true
+	} else {
+		return false
+	}
 }
 
 // fslistf - return a list of frames in a frameset
-func fslistf(name string) bool {
-    if fexistf(name) {
-        return fframes[name][name+",set"]
-    } else {
-        return ""
-    }
+func Fslistf(name string) []string {
+	if Fexistf(name) {
+		return fframes[name][name+",set"]
+	} else {
+		return []string{}
+	}
 }
 
 // floadfs - load a frameset into memory
-func floadfs(name string) bool {
-    if floadf(name) {
-        s := fslistf(name)
-        for _, i := range s {
-            floadf(i)
-        }
-        return true
-    } else {
-        return false
-    }
+func Floadfs(name string) bool {
+	if Floadf(name) {
+		s := Fslistf(name)
+		for _, i := range s {
+			Floadf(i)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fstorefs - store a frameset on disk
-func floadfs(name string) bool {
-    if fstoref(name) {
-        s := fslistf(name)
-        for _, i := range s {
-            fstoref(i)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fstorefs(name string) bool {
+	if Fstoref(name) {
+		s := Fslistf(name)
+		for _, i := range s {
+			Fstoref(i)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fsincludef - include a frame in a frameset
-func fsincludef(name, fname string) bool {
-    if fexistf(name) && fexistf(fname) {
-        fframes[name][name+",set"] = append(fframes[name][name+",set"], fname)
-        return true
-    } else {
-        return false
-    }
+func Fsincludef(name, fname string) bool {
+	if Fexistf(name) && Fexistf(fname) {
+		fframes[name][name+",set"] = append(fframes[name][name+",set"], fname)
+		return true
+	} else {
+		return false
+	}
 }
 
 // fsexcludef - exclude a frame from a frameset
-func fsexcludef(name, fname string) bool {
-    if fexistf(name) {
-        if fmember(fframes[name][name+",set"], fname) {
-            fremove(fframes[name][name+",set"], fname)
-            return true
-        } else {
-            return false
-        }
-    } else {
-        return false
-    }
+func Fsexcludef(name, fname string) bool {
+	if Fexistf(name) {
+		if Fmember(fframes[name][name+",set"], fname) {
+			set := fframes[name][name+",set"]
+			Fremove(&set, fname)
+			copy(fframes[name][name+",set"], set)
+			return true
+		} else {
+			return false
+		}
+	} else {
+		return false
+	}
 }
 
 // fscreates - create a slot in a frameset
-func fscreates(name, sname string) bool {
-    if fcreates(name, sname) {
-        s := fslistf(name)
-        for _, i := range s {
-            fcreates(i, sname)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fscreates(name, sname string) bool {
+	if Fcreates(name, sname) {
+		s := Fslistf(name)
+		for _, i := range s {
+			Fcreates(i, sname)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fsremoves - remove a slot from a frameset
-func fsremoves(name, sname string) bool {
-    if fremoves(name, sname) {
-        s := fslistf(name)
-        for _, i := range s {
-            fremoves(i, sname)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fsremoves(name, sname string) bool {
+	if Fremoves(name, sname) {
+		s := Fslistf(name)
+		for _, i := range s {
+			Fremoves(i, sname)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fscreated - create a demon facet in a frameset
-func fscreated(name, sname, dname string) bool {
-    if fcreated(name, sname, dname) {
-        s := fslistf(name)
-        for _, i := range s {
-            fcreated(i, sname, dname)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fscreated(name, sname, dname string) bool {
+	if Fcreated(name, sname, dname) {
+		s := Fslistf(name)
+		for _, i := range s {
+			Fcreated(i, sname, dname)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fsremoved - remove a demon facet from a frameset
-func fsremoved(name, sname, dname string) bool {
-    if fremoves(name, sname, dname) {
-        s := fslistf(name)
-        for _, i := range s {
-            fremoved(i, sname, dname)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fsremoved(name, sname, dname string) bool {
+	if Fremoved(name, sname, dname) {
+		s := Fslistf(name)
+		for _, i := range s {
+			Fremoved(i, sname, dname)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fscreatem - create a method facet in a frameset
-func fscreatem(name, sname string) bool {
-    if fcreatem(name, sname) {
-        s := fslistf(name)
-        for _, i := range s {
-            fcreatem(i, sname)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fscreatem(name, sname string) bool {
+	if Fcreatem(name, sname) {
+		s := Fslistf(name)
+		for _, i := range s {
+			Fcreatem(i, sname)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fsremovem - remove a method facet from a frameset
-func fsremovem(name, sname string) bool {
-    if fremovem(name, sname) {
-        s := fslistf(name)
-        for _, i := range s {
-            fremovem(i, sname)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fsremovem(name, sname string) bool {
+	if Fremovem(name, sname) {
+		s := Fslistf(name)
+		for _, i := range s {
+			Fremovem(i, sname)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fscreater - create a reference facet in a frameset
-func fscreater(name, sname string) bool {
-    if fcreater(name, sname) {
-        s := fslistf(name)
-        for _, i := range s {
-            fcreater(i, sname)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fscreater(name, sname string) bool {
+	if Fcreater(name, sname) {
+		s := Fslistf(name)
+		for _, i := range s {
+			Fcreater(i, sname)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fsremover - remove a reference facet from a frameset
-func fsremover(name, sname string) bool {
-    if fremover(name, sname) {
-        s := fslistf(name)
-        for _, i := range s {
-            fremover(i, sname)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fsremover(name, sname string) bool {
+	if Fremover(name, sname) {
+		s := Fslistf(name)
+		for _, i := range s {
+			Fremover(i, sname)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fscreatev - create a value facet in a frameset
-func fscreatev(name, sname string) bool {
-    if fcreatev(name, sname) {
-        s := fslistf(name)
-        for _, i := range s {
-            fcreatev(i, sname)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fscreatev(name, sname string) bool {
+	if Fcreatev(name, sname) {
+		s := Fslistf(name)
+		for _, i := range s {
+			Fcreatev(i, sname)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fsremovev - remove a value facet from of a frameset
-func fsremovev(name, sname string) bool {
-    if fremovev(name, sname) {
-        s := fslistf(name)
-        for _, i := range s {
-            fremovev(i, sname)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fsremovev(name, sname string) bool {
+	if Fremovev(name, sname) {
+		s := Fslistf(name)
+		for _, i := range s {
+			Fremovev(i, sname)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fsputr - put a value in reference facet in a frameset
-func fsputr(name, sname, fname string) bool {
-    if fexistr(name, sname) {
-        fputr(name, sname, fname)
-        s := fslistf(name)
-        for _, i := range s {
-            fputr(i, sname, fname)
-        }
-        return true
-    } else {
-        return false
-    }
+func Fsputr(name, sname, fname string) bool {
+	if Fexistr(name, sname) {
+		Fputr(name, sname, fname)
+		s := Fslistf(name)
+		for _, i := range s {
+			Fputr(i, sname, fname)
+		}
+		return true
+	} else {
+		return false
+	}
 }
 
 // fsgetr - get a value from a reference facet in a frameset
-func fsgetr(name, sname string) string {
-    if fexistr(name, sname) {
-        r := fgetr(name, sname)
-        return r
-    } else {
-        return ""
-    }
+func Fsgetr(name, sname string) string {
+	if Fexistr(name, sname) {
+		r := Fgetr(name, sname)
+		return r
+	} else {
+		return ""
+	}
 }
 
 // fsmemberf - get list of framesets in which a frame is a member
-func fsmemberf(name string) []string {
-    mlist := []string{}
-    if fexistf(name) {
-        for _, i := range flistf() {
-            if _, err := fframes[i][i+",set"]; err == nil {
-                if fmember(fslistf(i), name) {
-                    mlist = append(mlist, i)
-                }
-            }
-        }
-        return mlist
-    } else {
-        return []string{}
-    }
+func Fsmemberf(name string) []string {
+	mlist := []string{}
+	if Fexistf(name) {
+		for _, i := range Flistf() {
+			if _, err := fframes[i][i+",set"]; err {
+				if Fmember(Fslistf(i), name) {
+					mlist = append(mlist, i)
+				}
+			}
+		}
+		return mlist
+	} else {
+		return []string{}
+	}
 }
-
-
-
-
-
