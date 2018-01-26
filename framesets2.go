@@ -1,7 +1,6 @@
 package framesets2
 
 import (
-	"fmt"
 	"bufio"
 	"os"
 	"sort"
@@ -245,9 +244,13 @@ func Fcopyf(fname1, fname2 string) bool {
 		Fcreatef(fname2)
 		for k, _ := range fframes[fname1] {
 			if strings.HasSuffix(k, "slots") {
-				copy(fframes[fname2][fname2+",slots"], fframes[fname1][fname1+",slots"])
+				slots := []string{}
+				slots = append(slots, fframes[fname1][fname1+",slots"]...)
+				fframes[fname2][fname2+",slots"] = slots
 			} else {
-				copy(fframes[fname2][k], fframes[fname1][k])
+				elem := []string{}
+				elem = append(elem, fframes[fname1][k]...)
+				fframes[fname2][k] = elem
 			}
 		}
 		return true
@@ -279,9 +282,9 @@ func Fmergef(fname1, fname2 string) bool {
 			if k != fname1+",set" && k != fname1+",slots" {
 				sname := strings.Split(k, ",")[0]
 				if !Fmember(y, sname) {
-					copy(fframes[fname2][k], fframes[fname1][k])
+					fframes[fname2][k] = append(fframes[fname2][k], fframes[fname1][k]...)
 					slots := append(fframes[fname2][fname2+",slots"], sname)
-					copy(fframes[fname2][fname2+",slots"], slots)
+					fframes[fname2][fname2+",slots"] = slots
 				}
 			}
 		}
@@ -374,7 +377,7 @@ func Ffilterf(fname1, fname2 string) bool {
 
 // fcreatex - create a method in fmethods
 func Fcreatex(mname string) bool {
-	if _, err := fmethods[mname]; err {
+	if _, err := fmethods[mname]; !err {
 		fmethods[mname] = func(string) {}
 		return true
 	} else {
@@ -472,7 +475,7 @@ func Fremoves(fname, sname string) bool {
 		}
 		slots := fframes[fname][fname+",slots"]
 		Fremove(&slots, sname)
-		copy(fframes[fname][fname+",slots"], slots)
+		fframes[fname][fname+",slots"] = slots
 		return true
 	} else {
 		return false
@@ -491,9 +494,9 @@ func Flists(fname string) []string {
 // fcopys - copy a slot into another frame
 func Fcopys(fname1, sname, fname2 string) bool {
 	if Fexists(fname1, sname) && Fexistf(fname2) {
-		if Fmember(fframes[fname2][fname2+",slots"], sname) {
+		if !Fmember(fframes[fname2][fname2+",slots"], sname) {
 			slots := append(fframes[fname2][fname2+",slots"], sname)
-			copy(fframes[fname2][fname2+",slots"], slots)
+			fframes[fname2][fname2+",slots"] = slots
 		}
 		for k, _ := range fframes[fname1] {
 			sname2 := strings.Split(k, ",")[0]
@@ -716,7 +719,7 @@ func Fcreatem(fname, sname string) bool {
 	if Fexists(fname, sname) {
 		if Fmember(fframes[fname][sname+",facets"], "method") ||
 			Fmember(fframes[fname][sname+",facets"], "value") {
-			created = true
+			created = false
 		} else {
 			if Fmember(fframes[fname][sname+",facets"], "ref") {
 				fname2 := fframes[fname][sname+",ref"][0]
@@ -727,7 +730,7 @@ func Fcreatem(fname, sname string) bool {
 			} else {
 				fframes[fname][sname+",method"] = []string{}
 				facets := append(fframes[fname][sname+",facets"], "method")
-				copy(fframes[fname][sname+",facets"], facets)
+				fframes[fname][sname+",facets"] = facets
 				if Fmember(fframes[fname][sname+",facets"], "ifcreatem") {
 					fmethods[Getval(fframes[fname][sname+",ifcreatem"])](fname)
 				}
@@ -949,7 +952,6 @@ func Fputv(fname, sname, args string) bool {
 				value := fframes[fname][sname+",value"]
 				Putval(&value, args)
 				fframes[fname][sname+",value"] = value
-				fmt.Println("value=",fframes[fname][sname+",value"])
 				put = true
 			}
 		}
@@ -973,10 +975,10 @@ func Fexistd(fname, sname, dname string) bool {
 // fcreated - create a demon facet
 func Fcreated(fname, sname, dname string) bool {
 	if Fexists(fname, sname) {
-		if Fmember(fframes[fname][sname+",facets"], dname) {
+		if !Fmember(fframes[fname][sname+",facets"], dname) {
 			fframes[fname][sname+","+dname] = []string{}
 			facets := append(fframes[fname][sname+",facets"], dname)
-			copy(fframes[fname][sname+",facets"], facets)
+			fframes[fname][sname+",facets"] = facets
 			return true
 		} else {
 			return false
