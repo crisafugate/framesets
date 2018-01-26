@@ -573,12 +573,12 @@ func Fexistr(fname, sname string) bool {
 // fcreater - create a reference facet
 func Fcreater(fname, sname string) bool {
 	if Fexists(fname, sname) {
-		if Fmember(fframes[fname][sname+",facets"], "ref") {
+		if !Fmember(fframes[fname][sname+",facets"], "ref") {
 			x := Fmember(fframes[fname][sname+",facets"], "method")
 			y := Fmember(fframes[fname][sname+",facets"], "value")
 			if !(x || y) {
 				slots := append(fframes[fname][sname+",facets"], "ref")
-				copy(fframes[fname][sname+",facets"], slots)
+				fframes[fname][sname+",facets"] = slots
 				fframes[fname][sname+",ref"] = []string{}
 				if Fmember(fframes[fname][sname+",facets"], "ifcreater") {
 					fmethods[Getval(fframes[fname][sname+",ifcreater"])](fname)
@@ -604,7 +604,7 @@ func Fremover(fname, sname string) bool {
 		delete(fframes[fname], sname+",ref")
 		facets := fframes[fname][sname+",facets"]
 		Fremove(&facets, "ref")
-		copy(fframes[fname][sname+",facets"], facets)
+		fframes[fname][sname+",facets"] = facets
 		return true
 	} else {
 		return false
@@ -704,11 +704,11 @@ func Fexistm(fname, sname string) bool {
 			found = Fexistm(fname2, sname)
 		}
 		if Fmember(fframes[fname][sname+",facets"], "method") {
+			if Fmember(fframes[fname][sname+",facets"], "ifexistm") {
+				fmethods[Getval(fframes[fname][sname+",ifexistm"])](fname)
+			}
+			found = true
 		}
-		if Fmember(fframes[fname][sname+",facets"], "ifexistm") {
-			fmethods[Getval(fframes[fname][sname+",ifexistm"])](fname)
-		}
-		found = true
 	}
 	return found
 }
@@ -759,7 +759,7 @@ func Fremovem(fname, sname string) bool {
 				delete(fframes[fname], sname+",method")
 				facets := fframes[fname][sname+",facets"]
 				Fremove(&facets, "method")
-				copy(fframes[fname][sname+",facets"], facets)
+				fframes[fname][sname+",facets"] = facets
 				removed = true
 			}
 		}
@@ -848,12 +848,12 @@ func Fexistv(fname, sname string) bool {
 			}
 			found = Fexistv(fname2, sname)
 		}
-		if Fmember(fframes[fname][sname+",facets"], "value") {
+		if Fmember(fframes[fname][sname+",facets"], "value") {		
+			if Fmember(fframes[fname][sname+",facets"], "ifexistmv") {
+				fmethods[Getval(fframes[fname][sname+",ifexistv"])](fname)
+			}
+			found = true
 		}
-		if Fmember(fframes[fname][sname+",facets"], "ifexistmv") {
-			fmethods[Getval(fframes[fname][sname+",ifexistv"])](fname)
-		}
-		found = true
 	}
 	return found
 }
@@ -864,7 +864,7 @@ func Fcreatev(fname, sname string) bool {
 	if Fexists(fname, sname) {
 		if Fmember(fframes[fname][sname+",facets"], "method") ||
 			Fmember(fframes[fname][sname+",facets"], "value") {
-			created = true
+			created = false
 		} else {
 			if Fmember(fframes[fname][sname+",facets"], "ref") {
 				fname2 := fframes[fname][sname+",ref"][0]
@@ -904,7 +904,7 @@ func Fremovev(fname, sname string) bool {
 				delete(fframes[fname], sname+",value")
 				facets := fframes[fname][sname+",facets"]
 				Fremove(&facets, "value")
-				copy(fframes[fname][sname+",facets"], facets)
+				fframes[fname][sname+",facets"] = facets
 				removed = true
 			}
 		}
@@ -994,7 +994,7 @@ func Fremoved(fname, sname, dname string) bool {
 		delete(fframes[fname], sname+","+dname)
 		facets:= fframes[fname][sname+",facets"]
 		Fremove(&facets, dname)
-		copy(fframes[fname][sname+",facets"], facets)
+		fframes[fname][sname+",facets"] = facets
 		return true
 	} else {
 		return false
@@ -1090,7 +1090,8 @@ func Fstorefs(name string) bool {
 // fsincludef - include a frame in a frameset
 func Fsincludef(name, fname string) bool {
 	if Fexistf(name) && Fexistf(fname) {
-		fframes[name][name+",set"] = append(fframes[name][name+",set"], fname)
+		set := append(fframes[name][name+",set"], fname)
+		fframes[name][name+",set"] = set
 		return true
 	} else {
 		return false
@@ -1103,7 +1104,7 @@ func Fsexcludef(name, fname string) bool {
 		if Fmember(fframes[name][name+",set"], fname) {
 			set := fframes[name][name+",set"]
 			Fremove(&set, fname)
-			copy(fframes[name][name+",set"], set)
+			fframes[name][name+",set"] = set
 			return true
 		} else {
 			return false
