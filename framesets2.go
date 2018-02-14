@@ -1,3 +1,209 @@
+/**********************************************************************
+ *
+ * package name: framesets2
+ * programmer:   Cris A. Fugate
+ * history: 
+ *     Written: September 2, 1998 (wrote frames.tcl)
+ *     changed: September 28, 1998 (added floadf and fstoref to frames)
+ *     changed: November 25, 1998 (wrote framesets.tcl)
+ *     changed: February 10, 1999 (added fupdatef to frames, 
+ *         added fsetr, fsputr and fsmemberf to framesets)
+ *     changed: April 16, 1999 (merged frames and framesets)
+ *     changed: November 8, 1999 (added args to fputv, fputm, fputd)
+ *     changed: January 26, 2017 (converted to Go)
+ *
+ * Copyright (c) 2017 Cris A. Fugate
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ *
+ **********************************************************************
+ *
+ *							Variables
+ *
+ * aname					array name
+ * args						arguments
+ * avalue					array value
+ * cmp						comparison flag
+ * created					created flag
+ * demon					demon map element
+ * dname					demon type
+ * elem						array element
+ * elema					element of a list
+ * err						error
+ * executed					execute flag
+ * facets					facets map element
+ * fframes					map of frames
+ * fh						file handle
+ * flist					list of references in a frame
+ * fmethods					map of methods
+ * fname					frame name
+ * fname1					frame name
+ * fname2					frame name
+ * found					exist flag
+ * frames					list of frames
+ * ftype					facet type
+ * i						loop value
+ * k						loop key
+ * line						line from file
+ * lista					first list to be processed
+ * listb					second list to be processed
+ * listx					first temporary list
+ * listy					second temporary list
+ * mlist					list of framesets of which a frame is a member
+ * mname					method name
+ * name						frameset name
+ * plist					list of frames in a reference chain
+ * pname					function name
+ * put						put flag
+ * r						reference
+ * reader					file reader
+ * ref						reference map element
+ * removed					remove flag
+ * s						list of frames in a frameset
+ * set						set map element
+ * slots					slots map element
+ * sname					slot name
+ * sname2					slot name
+ * value					vector value
+ * vector					string array
+ * writer					file writer
+ * x						variable used in place of expression
+ * y						variable used in place of expression
+ * fframes[<fname>][<ename>]				used in operations involving many elements
+ * fframes[<fname>][<fname>,slot]			frames in a frameset
+ * fframes[<fname>][<fname>,<ftype>]		demon facet
+ * fframes[<fname>][<fname>,facets]			facets in a slot
+ * fframes[<fname>][<fname>,ifcreatem]		ifcreatem demon
+ * fframes[<fname>][<fname>,ifcreater]		ifcreater demon
+ * fframes[<fname>][<fname>,ifcreatev]		ifcreatev demon
+ * fframes[<fname>][<fname>,ifexecm]		ifexecm demon
+ * fframes[<fname>][<fname>,ifexistm]		ifexistm demon
+ * fframes[<fname>][<fname>,ifexistr]		ifexistr demon
+ * fframes[<fname>][<fname>,ifexistv]		ifexistv demon
+ * fframes[<fname>][<fname>,ifgetm]			ifgetm demon
+ * fframes[<fname>][<fname>,ifgetr]			ifgetr demon
+ * fframes[<fname>][<fname>,ifgetv]			ifgetv demon
+ * fframes[<fname>][<fname>,ifputm]			ifputm demon
+ * fframes[<fname>][<fname>,ifputr]			ifputr demon
+ * fframes[<fname>][<fname>,ifputv]			ifputv demon
+ * fframes[<fname>][<fname>,ifref]			ifref demon
+ * fframes[<fname>][<fname>,ifremovem]		ifremovem demon
+ * fframes[<fname>][<fname>,ifremover]		ifremover demon
+ * fframes[<fname>][<fname>,ifremovev]		ifremovev demon
+ * fframes[<fname>][<fname>,method]			method facet
+ * fframes[<fname>][<fname>,ref]			reference facet
+ * fframes[<fname>][<fname>,value]			value facet
+ * fmethods[<mname>]						method map
+ *
+ **********************************************************************
+ * 							
+ * 							Functions
+ *
+ * 
+ * Fcomparef				compare slots of two frames
+ * Fcompares				compare two slots
+ * Fcompress				order and remove duplicates from a list
+ * Fcopyf					make a copy of a frame
+ * Fcopys					make a copy of a slot in another frame
+ * Fcreated					create a demon facet
+ * Fcreatef					create a frame
+ * Fcreatefs				create a frameset
+ * Fcreatem					create a method facet
+ * Fcreater					create a reference facet
+ * Fcreates					create a slot
+ * Fcreatev					create a value facet
+ * Fcreatex					create a function in the function map
+ * Fdifference				return difference of two lists
+ * Fdisjunction				return disjunction of two lists
+ * Fequivalence				determine if two lists are equivalent
+ * Fexecd					directly execute a demon
+ * Fexecm					execute a method
+ * Fexistd					determine if a demon facet exists
+ * Fexistf					determine if a frame exists
+ * Fexistm					determine if a method facet exists
+ * Fexists					determine if a slot exists
+ * Fexistr					determine if a reference facet exists
+ * Fexistrx					(same as fexistr without a demon call)
+ * Fexistv					determine if a value facet exists
+ * Fexistx					determine if a function exists in the function map
+ * Ffilterf					filter a frame based on another frame
+ * Ffind					find all frames having a given value facet
+ * Ffindeq					find all frames having a given value for a given value facet
+ * Ffindne					find all frames not having a given value for a given value facet
+ * Fgetd					get the value of a demon facet
+ * Fgetm					get the value of a mthod facet
+ * Fgetr					get the value of a reference facet
+ * Fgetv					get the value of a value facet
+ * Fgetx					get the value from the function map
+ * Fintersection			return intersection of two lists
+ * Flistf					get a list of existing frames
+ * Flistr					get a list of references in a frame
+ * Flists					get a list of slots for a frame
+ * Flistt					get a list of facet types for a slot
+ * Flistx					get a list of functions from the function map
+ * Floadf					load a frame into memory
+ * Floadfs					load a frameset into memory
+ * Fmember					determine if a value is a member of a list
+ * Fmergef					merge slots of a frame into another frame
+ * Fpathr					get a list of frames in a reference chain
+ * Fpathrr					(recursive version of Fpathr)
+ * Fputd					put a value into a demon facet
+ * Fputm					put a value into a method facet
+ * Fputr					put a value into a reference facet
+ * Fputv					put a value into a value facet
+ * Fputx					put a function into the function map
+ * Fremove					remove a value from a list
+ * Fremoved					destroy a demon facet
+ * Fremovef					destroy a frame
+ * Fremovefs				destroy a frameset
+ * Fremovem					destroy a method facet
+ * Fremover					destroy a reference facet
+ * Fremoves					destroy a slot
+ * Fremovev					destroy a value facet
+ * Fremovex					destroy a function in the function map
+ * Fscreated				create a demon facet in a frameset
+ * Fscreatem				create a method facet in a frameset
+ * Fscreater				create a reference facet in a frameset
+ * Fscreates				create a slot in a frameset
+ * Fscreatev				create a value facet in a frameset
+ * Fsexcludef				exclude a frame from a frameset			
+ * Fsgetr					get a value from a reference facet in a frameset
+ * Fsincludef				include a frame in a frameset
+ * Fslistf					get a list of frames in a frameset
+ * Fsmemberf				get a list of framesets in which a frame is a member
+ * Fsputr					put a value in a reference facet in a frameset
+ * Fsremoved				remove a demon facet from a frameset
+ * Fsremovem				remove a method facet from a frameset
+ * Fsremover				remove a reference facet from a frameset
+ * Fsremoves				remove a slot from a frameset
+ * Fsremovev				remove a value facet from a frameset
+ * Fstoref					store a frame on disk
+ * Fstorefs					store a frameset on disk
+ * Fsubset					determine if a list is a subset of another list
+ * Funion					return union of two lists
+ * Fupdatef					synchronize a frame based on another frame
+ * Getval					get value from a frame map element
+ * Putval					put value in a frame map element 
+ */
+
+
 package framesets2
 
 import (
@@ -41,6 +247,7 @@ func Putval(vector *[]string, value string) {
 // set operations
 
 // fcompress - order and remove duplicates from a list
+// modifies lista 	
 func Fcompress(lista *[]string) {
 	if len(*lista) > 0 {
 		listx := *lista
@@ -69,6 +276,7 @@ func Fmember(lista []string, elema string) bool {
 }
 
 // fremove - remove all occurances of an element from a list
+// modifies lista
 func Fremove(lista *[]string, elema string) {
 	listx := *lista
 	listy := []string{}
@@ -209,6 +417,8 @@ func Fexistf(fname string) bool {
 }
 
 // fcreatef - create a frame
+// requires that fframes[fname] does not exist
+// modifies fframes, fframes[fname][fname,slots]
 func Fcreatef(fname string) bool {
 	if !Fexistf(fname) {
 		fframes[fname] = Frame{fname + ",slots": {}}
@@ -219,6 +429,8 @@ func Fcreatef(fname string) bool {
 }
 
 // fremovef - remove a frame
+// requires that fframes[fname] exists
+// modifies fframes, fframes[fname]
 func Fremovef(fname string) bool {
 	if Fexistf(fname) {
 		delete(fframes, fname)
@@ -238,6 +450,8 @@ func Flistf() []string {
 }
 
 // fcopyf - create a new frame based on another frame
+// requires that fframes[fname1] exists
+// modifies fframes, fframes[fname2]
 func Fcopyf(fname1, fname2 string) bool {
 	if Fexistf(fname1) {
 		Fremovef(fname2)
@@ -260,6 +474,7 @@ func Fcopyf(fname1, fname2 string) bool {
 }
 
 // fcomparef - determine if two frames are equivalent
+// requires that fframes[fname1] and fframes[fname2] exist
 func Fcomparef(fname1, fname2 string) bool {
 	if Fexistf(fname1) && Fexistf(fname2) {
 		x := fframes[fname1][fname1+",slots"]
@@ -275,6 +490,8 @@ func Fcomparef(fname1, fname2 string) bool {
 }
 
 // fmergef - merge slots of one frame into another frame
+// requires that fframes[fname1] and fframes[fname2] exist
+// modifies fframes[fname2]
 func Fmergef(fname1, fname2 string) bool {
 	if Fexistf(fname1) && Fexistf(fname2) {
 		y := fframes[fname2][fname2+",slots"]
@@ -295,6 +512,7 @@ func Fmergef(fname1, fname2 string) bool {
 }
 
 // floadf - load a frame into memory
+// requires that fframes[fname] exists on disk, but not in memory
 func Floadf(fname string) bool {
 	if _, err := os.Stat(fname); os.IsExist(err) {
 		if !Fexistf(fname) {
@@ -319,6 +537,7 @@ func Floadf(fname string) bool {
 }
 
 // fstoref - store a frame on disk
+// requires that fframes[fname] exists
 func Fstoref(fname string) bool {
 	if Fexistf(fname) {
 		fh, _ := os.Create(fname)
@@ -334,6 +553,8 @@ func Fstoref(fname string) bool {
 }
 
 // fupdatef - update structure of a frame from another frame
+// requires that both frames exist
+// modifies fframes[fname2]
 func Fupdatef(fname1, fname2 string) bool {
 	if Fexistf(fname1) && Fexistf(fname2) {
 		copy(fframes[fname2][fname2+",slots"], fframes[fname1][fname1+",slots"])
@@ -358,6 +579,8 @@ func Fupdatef(fname1, fname2 string) bool {
 }
 
 // ffilterf - filter slots of a frame based on another frame
+// requiers that both frames exist
+// modifies fframes[fname2]
 func Ffilterf(fname1, fname2 string) bool {
 	if Fexistf(fname1) && Fexistf(fname2) {
 		for k, _ := range fframes[fname2] {
@@ -376,6 +599,8 @@ func Ffilterf(fname1, fname2 string) bool {
 // fmethods functions
 
 // fcreatex - create a method in fmethods
+// requires that fmethods[mname] does not exist
+// modifies fmethods
 func Fcreatex(mname string) bool {
 	if _, err := fmethods[mname]; !err {
 		fmethods[mname] = func(string) {}
@@ -386,6 +611,8 @@ func Fcreatex(mname string) bool {
 }
 
 // fremovex - remove a method from fmethods
+// requires that fmethods[mname] exists
+// modifies fmethods
 func Fremovex(mname string) bool {
 	if _, err := fmethods[mname]; err {
 		delete(fmethods, mname)
@@ -424,6 +651,8 @@ func Fgetx(mname string) (func(string), bool) {
 }
 
 // fputx - put a method in fmethods
+// requires that fmethods[mname] exists
+// modifies fmethods[mname]
 func Fputx(mname string, method func(string)) bool {
 	if _, err := fmethods[mname]; err {
 		fmethods[mname] = method
@@ -436,6 +665,7 @@ func Fputx(mname string, method func(string)) bool {
 // slot functions
 
 // fexists - determine if a slot exists
+// requires that fframes[fname] exists
 func Fexists(fname, sname string) bool {
 	if Fexistf(fname) {
 		if Fmember(fframes[fname][fname+",slots"], sname) {
@@ -449,6 +679,8 @@ func Fexists(fname, sname string) bool {
 }
 
 // fcreates - create a slot
+// requires that fframes[fname] exists
+// modifies fframes[fname][fname,slots], fframes[fname][sname,facets]
 func Fcreates(fname, sname string) bool {
 	if Fexistf(fname) {
 		if !Fmember(fframes[fname][fname+",slots"], sname) {
@@ -465,6 +697,8 @@ func Fcreates(fname, sname string) bool {
 }
 
 // fremoves - remove a slot
+// requires that fframes[fname][sname,facets] exists
+// modifies fframes[fname][fname,slots], fframes[fname][sname,]?
 func Fremoves(fname, sname string) bool {
 	if Fexists(fname, sname) {
 		for k, _ := range fframes[fname] {
@@ -483,6 +717,7 @@ func Fremoves(fname, sname string) bool {
 }
 
 // flists - list slots of a frame
+// requires that fframes[fname] exists
 func Flists(fname string) []string {
 	if Fexistf(fname) {
 		return fframes[fname][fname+",slots"]
@@ -492,6 +727,8 @@ func Flists(fname string) []string {
 }
 
 // fcopys - copy a slot into another frame
+// requires that both frames exist
+// modifies fframes[fname][sname,]
 func Fcopys(fname1, sname, fname2 string) bool {
 	if Fexists(fname1, sname) && Fexistf(fname2) {
 		if !Fmember(fframes[fname2][fname2+",slots"], sname) {
@@ -511,6 +748,7 @@ func Fcopys(fname1, sname, fname2 string) bool {
 }
 
 // fcompares - compare a slot in two frames
+// requires that fframes[fname1][sname,facets], fframes[fname2][sname,facets] exist
 func Fcompares(fname1, sname, fname2 string) bool {
 	cmp := true
 	if Fexists(fname1, sname) && Fexists(fname2, sname) {
@@ -537,6 +775,7 @@ func Fcompares(fname1, sname, fname2 string) bool {
 }
 
 // flistt - list of facet types in a slot
+// requires that fframes[fname][sname,facets] exists
 func Flistt(fname, sname string) []string {
 	if Fexists(fname, sname) {
 		return fframes[fname][sname+",facets"]
@@ -546,6 +785,7 @@ func Flistt(fname, sname string) []string {
 }
 
 // fexistrx - determine if a reference facet exists (internal)
+// requires that fframes[fname][sname,facets] exists
 func Fexistrx(fname, sname string) bool {
 	if Fexists(fname, sname) {
 		if Fmember(fframes[fname][sname+",facets"], "ref") {
@@ -559,6 +799,7 @@ func Fexistrx(fname, sname string) bool {
 }
 
 // fexistr - determine if a reference facet exists
+// requires that fframes[fname][sname,facets] exists
 func Fexistr(fname, sname string) bool {
 	if Fexistrx(fname, sname) {
 		if Fmember(fframes[fname][sname+",facets"], "ifexistr") {
@@ -571,6 +812,8 @@ func Fexistr(fname, sname string) bool {
 }
 
 // fcreater - create a reference facet
+// requires that fframes[fname][sname,facets] exists
+// modifies fframes[fname][sname,facets], fframes[fname][sname,ref]
 func Fcreater(fname, sname string) bool {
 	if Fexists(fname, sname) {
 		if !Fmember(fframes[fname][sname+",facets"], "ref") {
@@ -596,6 +839,9 @@ func Fcreater(fname, sname string) bool {
 }
 
 // fremover - remove a reference facet
+// requires that fframes[fname][sname,ref] exists
+// modifies fframes[fname][sname,facets], fframes[fname][sname,ref]
+// calls ifremover demon
 func Fremover(fname, sname string) bool {
 	if Fexistrx(fname, sname) {
 		if Fmember(fframes[fname][sname+",facets"], "ifremover") {
@@ -612,6 +858,8 @@ func Fremover(fname, sname string) bool {
 }
 
 // fgetr - get a value from a reference facet
+// requires that fframes[fname][sname,ref] exists
+// calls ifgetr demon
 func Fgetr(fname, sname string) string {
 	if Fexistrx(fname, sname) {
 		if Fmember(fframes[fname][sname+",facets"], "ifgetr") {
@@ -624,6 +872,9 @@ func Fgetr(fname, sname string) string {
 }
 
 // fputr - put a value in a reference facet
+// requires that ffframes[fname][sname,ref] exists
+// modifies fname(sname,ref)
+// calls ifputr demon
 func Fputr(fname1, sname, fname2 string) bool {
 	if Fexistrx(fname1, sname) {
 		ref := fframes[fname1][sname+",ref"]
@@ -639,6 +890,7 @@ func Fputr(fname1, sname, fname2 string) bool {
 }
 
 // flistr - list of references in a frame
+// requires that fframes[fname] exists
 func Flistr(fname string) []string {
 	flist := []string{}
 	if Fexistf(fname) {
@@ -654,6 +906,7 @@ func Flistr(fname string) []string {
 }
 
 // fpathr - return chain of references
+// requires that fframes[fname][sname,facets] exists
 func Fpathr(fname, sname string) []string {
 	plist := []string{}
 	if Fexists(fname, sname) {
@@ -693,6 +946,8 @@ func fpathrr(fname string, sname string, plist []string) []string {
 }
 
 // fexistm - determine if a method facet exists
+// requires that fframes[fname][sname,facets] exists
+// calls ifref and ifexistm demons
 func Fexistm(fname, sname string) bool {
 	found := false
 	if Fexists(fname, sname) {
@@ -714,6 +969,10 @@ func Fexistm(fname, sname string) bool {
 }
 
 // fcreatem - create a method facet
+// requires that fframes[fname][sname,facets] exists
+// modifies fframes[fname][sname,facets],fframes[fname][sname,method] where fname is
+//          the original or referenced frame
+// calls ifref and ifcreatem demons
 func Fcreatem(fname, sname string) bool {
 	created := false
 	if Fexists(fname, sname) {
@@ -742,6 +1001,10 @@ func Fcreatem(fname, sname string) bool {
 }
 
 // fremovem - remove a method facet
+// requires that fframes[fname][sname,facets] exists
+// modifies fframes[fname][sname,facets], fframes[fname][sname,method] where fname is
+//          the original or referenced frame
+// calls ifref and ifremovem demons
 func Fremovem(fname, sname string) bool {
 	removed := false
 	if Fexists(fname, sname) {
@@ -791,6 +1054,8 @@ func Fexecm(fname, sname string) bool {
 }
 
 // fgetm - get a value from a method
+// requires that fframes[fname][sname,facets] exists
+// calls ifref and ifexecm demons
 func Fgetm(fname string, sname string) string {
 	pname := ""
 	if Fexists(fname, sname) {
@@ -813,6 +1078,10 @@ func Fgetm(fname string, sname string) string {
 }
 
 // fputm - put a value in a method facet
+// requires that fframes[fname][sname,facets] exists
+// modifies fframes[fname][sname,method] where fname is the original or
+//          referenced frame
+// calls ifref and ifputm demons
 func Fputm(fname, sname, args string) bool {
 	put := false
 	if Fexists(fname, sname) {
@@ -838,6 +1107,8 @@ func Fputm(fname, sname, args string) bool {
 }
 
 // fexistv - determine if a value facet exists
+// requires that fframes[fname][sname,facets] exists
+// calls ifref and ifexistv demons
 func Fexistv(fname, sname string) bool {
 	found := false
 	if Fexists(fname, sname) {
@@ -859,6 +1130,10 @@ func Fexistv(fname, sname string) bool {
 }
 
 // fcreatev - create a value facet
+// requires that fframes[fname][sname,facets] exists
+// modifies fframes[fname][sname,facets],fframes[fname][sname,value] where fname is
+//          the original or referenced frame
+// calls ifref and ifcreatev demons
 func Fcreatev(fname, sname string) bool {
 	created := false
 	if Fexists(fname, sname) {
@@ -887,6 +1162,10 @@ func Fcreatev(fname, sname string) bool {
 }
 
 // fremovev - remove a value facet
+// requires that fframes[fname][sname,facets] exists
+// modifies fframes[fname][sname,facets],fframes[fname][sname,value] where fname is
+//          the original or referenced frame
+// calls ifref and ifremovev demons
 func Fremovev(fname, sname string) bool {
 	removed := false
 	if Fexists(fname, sname) {
@@ -913,6 +1192,8 @@ func Fremovev(fname, sname string) bool {
 }
 
 // fgetv - get a value from a value facet
+// requires that fframes[fname][sname,facets] exists
+// calls ifref and ifgetv demons
 func Fgetv(fname string, sname string) string {
 	pname := ""
 	if Fexists(fname, sname) {
@@ -935,6 +1216,10 @@ func Fgetv(fname string, sname string) string {
 }
 
 // fputv - put a value in a value facet
+// requires that fframes[fname][sname,facets] exists
+// modifies fframes[fname][sname,value] where fname is the original or
+//          referenced frame
+// calls ifref and ifputv demons
 func Fputv(fname, sname, args string) bool {
 	put := false
 	if Fexists(fname, sname) {
@@ -960,6 +1245,7 @@ func Fputv(fname, sname, args string) bool {
 }
 
 // fexistd - determine if a demon facet exists
+// requires that fframes[fname][sname,facets] exists
 func Fexistd(fname, sname, dname string) bool {
 	if Fexists(fname, sname) {
 		if Fmember(fframes[fname][sname+",facets"], dname) {
@@ -973,6 +1259,8 @@ func Fexistd(fname, sname, dname string) bool {
 }
 
 // fcreated - create a demon facet
+// requires that fframes[fname][sname,facets] exists
+// modifies fframes[fname][sname,facets],fframes[fname][sname,dname]
 func Fcreated(fname, sname, dname string) bool {
 	if Fexists(fname, sname) {
 		if !Fmember(fframes[fname][sname+",facets"], dname) {
@@ -989,6 +1277,8 @@ func Fcreated(fname, sname, dname string) bool {
 }
 
 // fremoved - remove a demon facet
+// requires that fframes[fname][sname,dname] exists
+// modifies fframes[fname][sname,facets],fframes[fname][sname,dname]
 func Fremoved(fname, sname, dname string) bool {
 	if Fexistd(fname, sname, dname) {
 		delete(fframes[fname], sname+","+dname)
@@ -1002,6 +1292,7 @@ func Fremoved(fname, sname, dname string) bool {
 }
 
 // fgetd - get a value from a demon facet
+// requires that fframes[fname][sname,dname] exists
 func Fgetd(fname, sname, dname string) string {
 	if Fexistd(fname, sname, dname) {
 		return Getval(fframes[fname][sname+","+dname])
@@ -1011,6 +1302,8 @@ func Fgetd(fname, sname, dname string) string {
 }
 
 // fputd - put a value in a demon facet
+// requires that fframes[fname][sname,dname] exists
+// modifies fframes[fname][sname,dname]
 func Fputd(fname, sname, dname, args string) bool {
 	if Fexistd(fname, sname, dname) {
 		demon := fframes[fname][sname+","+dname]
@@ -1023,6 +1316,7 @@ func Fputd(fname, sname, dname, args string) bool {
 }
 
 // fexecd - directly execute a demon
+// requires that fframes[fname][sname,dname] exists
 func Fexecd(fname, sname, dname string) bool {
 	if Fexistd(fname, sname, dname) {
 		fmethods[Getval(fframes[fname][sname+","+dname])](fname)
@@ -1033,6 +1327,8 @@ func Fexecd(fname, sname, dname string) bool {
 }
 
 // fcreatefs - create a frameset
+// requires that fframes[name] does not exist
+// modifies fframes[name][name,set], fframes[name][name,slots]
 func Fcreatefs(name string) bool {
 	if !Fexistf(name) {
 		fframes[name] = Frame{name + ",slots": {}}
@@ -1044,6 +1340,8 @@ func Fcreatefs(name string) bool {
 }
 
 // fremovefs - remove a frameset
+// requires that fframes[name] exists
+// modifies fframes[name]
 func Fremovefs(name string) bool {
 	if Fremovef(name) {
 		return true
@@ -1053,6 +1351,7 @@ func Fremovefs(name string) bool {
 }
 
 // fslistf - return a list of frames in a frameset
+// requires that fframes[name] exists
 func Fslistf(name string) []string {
 	if Fexistf(name) {
 		return fframes[name][name+",set"]
@@ -1062,6 +1361,7 @@ func Fslistf(name string) []string {
 }
 
 // floadfs - load a frameset into memory
+// requires that fframes[name] exists on disk, but not in memory
 func Floadfs(name string) bool {
 	if Floadf(name) {
 		s := Fslistf(name)
@@ -1075,6 +1375,7 @@ func Floadfs(name string) bool {
 }
 
 // fstorefs - store a frameset on disk
+// requires that fframes[name] exists
 func Fstorefs(name string) bool {
 	if Fstoref(name) {
 		s := Fslistf(name)
@@ -1088,6 +1389,8 @@ func Fstorefs(name string) bool {
 }
 
 // fsincludef - include a frame in a frameset
+// requires that fframes[name] exists
+// modifies fframes[name][name,set]
 func Fsincludef(name, fname string) bool {
 	if Fexistf(name) && Fexistf(fname) {
 		set := append(fframes[name][name+",set"], fname)
@@ -1099,6 +1402,8 @@ func Fsincludef(name, fname string) bool {
 }
 
 // fsexcludef - exclude a frame from a frameset
+// requires that fframes[name] exists
+// modifies fframes[name][name,set]
 func Fsexcludef(name, fname string) bool {
 	if Fexistf(name) {
 		if Fmember(fframes[name][name+",set"], fname) {
@@ -1115,6 +1420,8 @@ func Fsexcludef(name, fname string) bool {
 }
 
 // fscreates - create a slot in a frameset
+// requires that fframes[name] exists
+// modifies fframes[name][name,slots], fframes[name][sname,facets], associated frames
 func Fscreates(name, sname string) bool {
 	if Fcreates(name, sname) {
 		s := Fslistf(name)
@@ -1128,6 +1435,8 @@ func Fscreates(name, sname string) bool {
 }
 
 // fsremoves - remove a slot from a frameset
+// requires that fframes[name][sname,facets] exists
+// modifies fframes[name][name,slots], fframes[name][sname,], associated frames
 func Fsremoves(name, sname string) bool {
 	if Fremoves(name, sname) {
 		s := Fslistf(name)
@@ -1141,6 +1450,8 @@ func Fsremoves(name, sname string) bool {
 }
 
 // fscreated - create a demon facet in a frameset
+// requires that fframes[name][sname,facets] exists
+// modifies fframes[name][sname,facets], fframes[name][sname,dname], associated frames
 func Fscreated(name, sname, dname string) bool {
 	if Fcreated(name, sname, dname) {
 		s := Fslistf(name)
@@ -1154,6 +1465,8 @@ func Fscreated(name, sname, dname string) bool {
 }
 
 // fsremoved - remove a demon facet from a frameset
+// requires that fframes[name][sname,dname] exists
+// modifies fframes[name][name,slots], fframes[name][sname,dname], associated frames
 func Fsremoved(name, sname, dname string) bool {
 	if Fremoved(name, sname, dname) {
 		s := Fslistf(name)
@@ -1167,6 +1480,8 @@ func Fsremoved(name, sname, dname string) bool {
 }
 
 // fscreatem - create a method facet in a frameset
+// requires that fframes[name][sname,facets] exists
+// modifies fframes[name][sname,facets], fframes[name][sname,method], associated frames
 func Fscreatem(name, sname string) bool {
 	if Fcreatem(name, sname) {
 		s := Fslistf(name)
@@ -1180,6 +1495,8 @@ func Fscreatem(name, sname string) bool {
 }
 
 // fsremovem - remove a method facet from a frameset
+// requires that fframes[name][sname,facets] exists
+// modifies fframes[name][sname,facets], fframes[name][sname,method], associated frames
 func Fsremovem(name, sname string) bool {
 	if Fremovem(name, sname) {
 		s := Fslistf(name)
@@ -1193,6 +1510,8 @@ func Fsremovem(name, sname string) bool {
 }
 
 // fscreater - create a reference facet in a frameset
+// requires that fframes[name][sname,facets] exists
+// modifies fframes[name][sname,facets], fframes[name][sname,ref], associated frames
 func Fscreater(name, sname string) bool {
 	if Fcreater(name, sname) {
 		s := Fslistf(name)
@@ -1206,6 +1525,8 @@ func Fscreater(name, sname string) bool {
 }
 
 // fsremover - remove a reference facet from a frameset
+// requires that fframes[name][sname,facets] exists
+// modifies fframes[name][sname,facets], fframes[name][sname,ref], associated frames
 func Fsremover(name, sname string) bool {
 	if Fremover(name, sname) {
 		s := Fslistf(name)
@@ -1219,6 +1540,8 @@ func Fsremover(name, sname string) bool {
 }
 
 // fscreatev - create a value facet in a frameset
+// requires that fframes[name][sname,facets] exists
+// modifies fframes[name][sname,facets], fframes[name][sname,value], associated frames
 func Fscreatev(name, sname string) bool {
 	if Fcreatev(name, sname) {
 		s := Fslistf(name)
@@ -1232,6 +1555,8 @@ func Fscreatev(name, sname string) bool {
 }
 
 // fsremovev - remove a value facet from of a frameset
+// requires that fframes[name][sname,facets] exists
+// modifies fframes[name][sname,facets], fframes[name][sname,value], associated frames
 func Fsremovev(name, sname string) bool {
 	if Fremovev(name, sname) {
 		s := Fslistf(name)
@@ -1245,6 +1570,8 @@ func Fsremovev(name, sname string) bool {
 }
 
 // fsputr - put a value in reference facet in a frameset
+// requires that fframes[name][sname,facets] exists
+// modifies the fframes[name][sname,ref]
 func Fsputr(name, sname, fname string) bool {
 	if Fexistr(name, sname) {
 		Fputr(name, sname, fname)
@@ -1259,6 +1586,7 @@ func Fsputr(name, sname, fname string) bool {
 }
 
 // fsgetr - get a value from a reference facet in a frameset
+// requires that fframes[name][sname,ref] exists
 func Fsgetr(name, sname string) string {
 	if Fexistr(name, sname) {
 		r := Fgetr(name, sname)
@@ -1269,6 +1597,7 @@ func Fsgetr(name, sname string) string {
 }
 
 // fsmemberf - get list of framesets in which a frame is a member
+// requires that the frame exists
 func Fsmemberf(name string) []string {
 	mlist := []string{}
 	if Fexistf(name) {
